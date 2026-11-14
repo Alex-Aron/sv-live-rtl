@@ -1,0 +1,179 @@
+{
+  "name": "sv-live-rtl",
+  "displayName": "SystemVerilog Live RTL Viewer",
+  "description": "Live SystemVerilog linting and RTL schematic viewer using Verilator, Yosys, and netlistsvg.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onLanguage:systemverilog",
+    "onCommand:sv-live-rtl.openViewer"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sv-live-rtl.openViewer",
+        "title": "SV RTL: Open Live Schematic Viewer"
+      }
+    ],
+    "languages": [
+      {
+        "id": "systemverilog",
+        "extensions": [
+          ".sv",
+          ".svh"
+        ],
+        "aliases": [
+          "SystemVerilog",
+          "systemverilog"
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "SystemVerilog Live RTL Viewer",
+      "properties": {
+        "sv-live-rtl.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "dark",
+            "light",
+            "custom"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Follow the active VS Code color theme.",
+            "Use the dark schematic palette.",
+            "Use the light schematic palette.",
+            "Use your custom component and wire colors."
+          ],
+          "description": "Color theme for the live RTL schematic. Changes recolor the current schematic immediately."
+        },
+        "sv-live-rtl.customColors": {
+          "type": "object",
+          "default": {
+            "background": "#1e1e1e",
+            "text": "#d4d4d4",
+            "wire": "#d4d4d4",
+            "bus": "#79c0ff",
+            "register-fill": "#1f3a60",
+            "register-stroke": "#58a6ff",
+            "mux-fill": "#4d3817",
+            "mux-stroke": "#d29922",
+            "logic-fill": "#18423b",
+            "logic-stroke": "#3fb950",
+            "port-fill": "#3c2249",
+            "port-stroke": "#bc8cff",
+            "neutral-fill": "#292929",
+            "neutral-stroke": "#d4d4d4"
+          },
+          "additionalProperties": false,
+          "description": "Colors used by the Custom schematic theme. Edit here or use the color pickers in the viewer.",
+          "properties": {
+            "background": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#1e1e1e",
+              "description": "Canvas"
+            },
+            "text": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#d4d4d4",
+              "description": "Labels"
+            },
+            "wire": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#d4d4d4",
+              "description": "Single-bit wires"
+            },
+            "bus": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#79c0ff",
+              "description": "Buses"
+            },
+            "register-fill": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#1f3a60",
+              "description": "Registers · fill"
+            },
+            "register-stroke": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#58a6ff",
+              "description": "Registers · outline"
+            },
+            "mux-fill": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#4d3817",
+              "description": "Multiplexers · fill"
+            },
+            "mux-stroke": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#d29922",
+              "description": "Multiplexers · outline"
+            },
+            "logic-fill": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#18423b",
+              "description": "Logic / arithmetic · fill"
+            },
+            "logic-stroke": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#3fb950",
+              "description": "Logic / arithmetic · outline"
+            },
+            "port-fill": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#3c2249",
+              "description": "I/O · fill"
+            },
+            "port-stroke": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#bc8cff",
+              "description": "I/O · outline"
+            },
+            "neutral-fill": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#292929",
+              "description": "Other symbols · fill"
+            },
+            "neutral-stroke": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "default": "#d4d4d4",
+              "description": "Other symbols · outline"
+            }
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -274,7 +274,7 @@ function placeLabel(route: Wire[], allWires: Wire[], occupied: Box[]): Label | u
   let traveled = 0;
   for (const w of route) {
     const length = distance(w.a, w.b);
-    const gap = w.horizontal ? textWidth + 2 * BUS_LABEL_HORIZONTAL_PADDING : 22;
+    const gap = w.horizontal ? textWidth + 2 * BUS_LABEL_HORIZONTAL_PADDING : 15;
     const margin = gap / 2 + 8;
     if (length >= margin * 2) {
       // Start at the route midpoint; try nearby clear positions on that segment.

@@ -12,7 +12,8 @@
   ],
   "activationEvents": [
     "onLanguage:systemverilog",
-    "onCommand:sv-live-rtl.openViewer"
+    "onCommand:sv-live-rtl.openViewer",
+    "onCommand:sv-live-rtl.openProjectViewer"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -20,6 +21,10 @@
       {
         "command": "sv-live-rtl.openViewer",
         "title": "SV RTL: Open Live Schematic Viewer"
+      },
+      {
+        "command": "sv-live-rtl.openProjectViewer",
+        "title": "SV RTL: Generate Multi-File Project Schematic"
       }
     ],
     "languages": [
@@ -163,6 +168,15 @@
           }
         }
       }
+    },
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "sv-live-rtl.openProjectViewer",
+          "when": "resourceExtname == .sv",
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {

@@ -12,7 +12,7 @@ export function getViewerPalette(): Palette {
   return sanitizePalette(vscode.workspace.getConfiguration('sv-live-rtl').get('customColors'));
 }
 
-export function getWebviewHtml(theme: ViewerTheme, palette?: Palette): string {
+export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportScriptUri?: string): string {
   const colors = sanitizePalette(palette);
   const colorInputs = Object.entries(PALETTE_FIELDS).map(([key, [label]]) =>
     `<label>${label}<input type="color" data-color="${key}" value="${colors[key as keyof Palette]}" aria-label="${label}"></label>`
@@ -88,13 +88,18 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette): string {
     .stale { background: #d29922; color: black; }
     .err { background: #ab2922; color: white; }
     #canvas {
-      flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center;
-      overflow: auto; cursor: grab;
+      flex: 1; min-height: 0; display: block; padding: 16px; box-sizing: border-box;
+      overflow: auto; cursor: grab; touch-action: none;
     }
     #canvas svg {
-      background: var(--rtl-background); border-radius: 6px; padding: 16px;
-      max-width: 95%; max-height: 90%;
+      background: var(--rtl-background); border-radius: 6px;
+      max-width: none; max-height: none; display: block;
     }
+    #canvas.panning { cursor: grabbing; user-select: none; }
+    #canvas:focus-visible { outline: 1px solid var(--vscode-focusBorder, #58a6ff); outline-offset: -2px; }
+    #view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 14px; font-size: 12px; }
+    #view-controls button { background: var(--vscode-button-background, #175cad); color: var(--vscode-button-foreground, #fff); border: 0; padding: 4px 9px; cursor: pointer; }
+    #viewport-hint { opacity: 0.8; }
     #custom-colors {
       padding: 8px 14px; max-height: 30vh; overflow: auto;
       border-bottom: 1px solid var(--vscode-panel-border, #808080); font-size: 12px;
@@ -133,12 +138,22 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette): string {
     <span style="--fill:var(--rtl-port-fill);--stroke:var(--rtl-port-stroke)">I/O</span>
     <span style="--fill:var(--rtl-bus);--stroke:var(--rtl-bus)">Buses (/N/)</span>
   </div>
+  <div id="view-controls">
+    <button id="zoom-fit" title="Fit the schematic (F)">Fit</button>
+    <button id="zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
+    <span id="zoom-level" aria-live="polite">100%</span>
+    <button id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+    <button id="zoom-reset" title="Actual size (0)">1:1</button>
+    <span id="viewport-hint">Wheel / pinch: zoom · Drag: pan · F: fit · 0: actual size</span>
+  </div>
   <div id="canvas">
     <p>Start typing a SystemVerilog module to generate gates and flip-flops...</p>
   </div>
+  ${viewportScriptUri ? `<script src="${viewportScriptUri.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"></script>` : ''}
   <script>
     const vscode = acquireVsCodeApi();
     const canvas = document.getElementById('canvas');
+    const viewport = window.rtlCreateViewport?.(canvas, vscode);
     const badge = document.getElementById('status-badge');
     const themeSelect = document.getElementById('theme');
     const customPanel = document.getElementById('custom-colors');
@@ -195,7 +210,10 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette): string {
         }
         applyTheme(msg.theme);
       } else if (msg.type === 'update') {
+        const position = viewport?.capture();
+        const first = !viewport?.hasContent;
         canvas.innerHTML = msg.svg;
+        viewport?.setContent(canvas.querySelector('svg'), { fit: first && !vscode.getState()?.viewport, position: first ? undefined : position });
         colorGenericCells();
         badge.className = 'badge ok';
         badge.textContent = msg.warningCount > 0

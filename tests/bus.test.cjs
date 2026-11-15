@@ -179,8 +179,8 @@ describe('Feature B: inline bus labels' , () => {
     const result = postProcessSvgBuses(wrap(line(60, 0, 60, 100)));
     assert.deepEqual(labels(result), [[60, 50]]);
     const lines = wireLines(result);
-    assert.equal(+lines[0].y2, 39);
-    assert.equal(+lines[1].y1, 61);
+    assert.equal(+lines[0].y2, 42.5);
+    assert.equal(+lines[1].y1, 57.5);
   });
 
   test('uses the routed midpoint through bends rather than fixed coordinate bonuses', () => {

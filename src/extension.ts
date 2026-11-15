@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { RtlPipeline } from './pipeline';
+import { registerProjectViewer } from './projectViewer';
 import { sanitizePalette } from './palette';
 import { getWebviewHtml, getViewerTheme, getViewerPalette } from './webview';
 
@@ -13,7 +14,7 @@ export async function activate(context: vscode.ExtensionContext) {
   customSkinPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'skins', 'dark-digital.svg').fsPath;
   await pipeline.init();
   diagnosticCollection = vscode.languages.createDiagnosticCollection('sv-live-rtl');
-  context.subscriptions.push(diagnosticCollection);
+  context.subscriptions.push(diagnosticCollection, registerProjectViewer(context));
 
   // Command to open the live RTL viewer window
   const openCmd = vscode.commands.registerCommand('sv-live-rtl.openViewer', () => {
@@ -32,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.ViewColumn.Beside,
         { enableScripts: true, retainContextWhenHidden: true }
       );
-      panel.webview.html = getWebviewHtml(getViewerTheme(), getViewerPalette());
+      panel.webview.html = getWebviewHtml(getViewerTheme(), getViewerPalette(), panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'viewport.js')).toString());
       panel.webview.onDidReceiveMessage(async (message) => {
         if (message.type === 'setTheme' && ['auto', 'dark', 'light', 'custom'].includes(message.theme)) {
           await vscode.workspace.getConfiguration('sv-live-rtl').update(
@@ -54,7 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Listen to typing events in SystemVerilog files
   const changeDocSub = vscode.workspace.onDidChangeTextDocument((event) => {
-    if (!isSystemVerilog(event.document)) {
+    if (!panel || !isSystemVerilog(event.document)) {
       return;
     }
     if (debounceTimer) {

@@ -34,6 +34,18 @@ purple. Split/join selectors and their slice labels share the purple I/O accent.
 Single-bit wires stay white in the dark palette; buses stay blue. A legend appears below the toolbar. Lint and synthesis errors keep the
 last valid schematic visible.
 
+## Zoom and pan
+
+Both the live and project viewers have **Fit**, **− / +**, and **1:1** controls.
+Scroll the mouse wheel or pinch the trackpad over the schematic to zoom around
+the pointer. Drag the schematic with the left or middle mouse button to pan;
+Shift + wheel pans horizontally. Zoom ranges from 5% to 800%.
+
+Click the schematic to focus it, then use **+ / −** to zoom, **F** to fit,
+**0** for actual size, and the arrow keys to pan (Shift moves farther).
+Navigation does not synthesize or lay out the design again, and manual zoom/pan
+is preserved when a live schematic or expanded module updates.
+
 ## Detailed Bus Widths & Slash Notation
 
 - **Port Bit-Ranges:** Vector ports explicitly display their bit-range declarations (e.g., `count [3:0]`, `data_in [7:0]`, `in_a [7:4]`), honoring offset and ascending/descending bounds from Yosys. Single-bit scalar signals (like `clk` and `rst`) remain uncluttered without brackets.
@@ -73,6 +85,46 @@ bank, with 2-, 3-, 4-, or 5-bit select signals. The splitter before each mux
 exposes the individual input words. The larger widths on the gallery's input
 banks describe all choices together; each mux input and output is 8 bits.
 
+## Multi-file project viewer
+
+Run **SV RTL: Generate Multi-File Project Schematic** from the Command Palette,
+or right-click a `.sv` file in Explorer, then choose the top module. The command
+opens a separate **Project RTL** tab. It discovers `.sv` and `.svh` files in that
+workspace folder, excludes dependencies/build output, and includes unsaved edits
+to existing files in each snapshot. Headers are included by the source files;
+they are not compiled as separate units.
+
+- **Expand/collapse:** Each instance starts as a dark box with its name and
+  ports. Click **+** to reveal its internal schematic inside a dotted boundary;
+  click **−** to collapse it. Repeated instances expand independently.
+- **Refresh project:** Generate a new snapshot manually, or enable **Refresh on
+  save**. Project mode does not synthesize on every keystroke. Failures keep the
+  last valid project visible and report diagnostics/status.
+- **Module view:** Use the View dropdown to inspect any elaborated module as the
+  root. Parameter specializations have separate cached results.
+- **Stable layout:** Expansion and ordinary logic edits use reserved module
+  frames so parent wires and sibling modules stay in place. Internal diagrams
+  scale to fit their frame. Use **Reflow layout** to resize frames and rearrange
+  the hierarchy after substantial changes. Fit and zoom controls help navigate.
+
+Linting and hierarchy elaboration still run across the project on refresh to
+resolve dependencies and parameters correctly. Synthesis and netlistsvg layout
+are cached per elaborated module. A logic-only leaf edit rebuilds that leaf and
+patches its expanded instances; unchanged parents reuse their existing SVGs.
+Interface changes also invalidate affected parents. Reflow reruns layouts while
+reusing synthesized netlists. Cache statistics appear above the schematic.
+
+To try it, open `examples/project/project_demo.sv`, run the project command,
+and select **project_demo**. Expand `left_stage` or `right_stage`, then expand
+their `arithmetic` and `result_register` instances. Edit `demo_alu.sv` and refresh
+to see the two ALU parameter specializations update while parent layouts are
+reused. The example also demonstrates a shared `.svh` include.
+
+This first project viewer preserves hierarchy; it does not provide a flattened
+view or `.f` filelist configuration yet. Sources must be compatible with the
+installed Yosys SystemVerilog frontend. Bidirectional `inout` ports are currently
+reported as unsupported. External black-box declarations remain collapsed.
+
 ## Local symbol library
 
 `resources/skins/default.svg` is a complete reference copy of the installed
@@ -88,4 +140,6 @@ coloring, custom palette controls, bus gap geometry, and preservation of the cur
 schematic during theme changes and tool errors. Integration tests require Verilator,
 Yosys, and netlistsvg on PATH. Mux conversion tests also use Yosys formal equivalence
 checks for the ALU, overlapping priority cases, and sparse cases with defaults.
+Project tests exercise parameterized hierarchies, shared includes, cache reuse,
+interface invalidation, failure recovery, and selective updates of expanded SVGs.
 Launch with **F5** to inspect rendering in the VS Code Webview.

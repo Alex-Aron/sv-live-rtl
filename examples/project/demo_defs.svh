@@ -1,0 +1,4 @@
+`ifndef PROJECT_DEMO_DEFS_SVH
+`define PROJECT_DEMO_DEFS_SVH
+`define PROJECT_DEMO_WIDTH 8
+`endif

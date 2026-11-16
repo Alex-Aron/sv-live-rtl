@@ -56,13 +56,14 @@ function harness(saved = {}) {
   elements.canvas.clientWidth = 900; elements.canvas.clientHeight = 600;
   const sent = [], listeners = {};
   let state;
-  vm.runInNewContext(fs.readFileSync('resources/project-viewer.js', 'utf8'), {
+  const context = {
     document: { createElement: tag => new Element(tag), createElementNS: (_, tag) => new Element(tag), importNode: el => el.clone(), getElementById: id => doc.querySelectorAll('[id]').find(el => el.id === id) },
     viewport: undefined, DOMParser: Parser, canvas: elements.canvas, badge: elements['status-badge'], colorGenericCells() {},
     vscode: { getState: () => state || saved, setState: value => { state = value; }, postMessage: message => sent.push(message) },
     window: { addEventListener: (type, fn) => { listeners[type] = fn; } }
-  });
-  return { elements, doc, sent, state: () => state, receive: data => listeners.message({ data }) };
+  };
+  vm.runInNewContext(fs.readFileSync('resources/project-viewer.js', 'utf8'), context);
+  return { route: context.routeModuleBridges, elements, doc, sent, state: () => state, receive: data => listeners.message({ data }) };
 }
 function model(key, svg, ports = []) { return { key, name: key, svg, ports, width: 500, height: 300, instances: [], blackbox: false }; }
 const leaf = text => model('leaf', `<svg width="120" height="80" viewBox="0 0 120 80"><g id="cell_a" transform="translate(5,20)"><text>${text}</text></g><g id="cell_y" transform="translate(80,20)"/></svg>`, [
@@ -77,13 +78,18 @@ test('project UI expands instances independently, namespaces IDs, and patches on
   assert.equal(h.sent[0].type, 'projectReady');
   h.receive(snapshot([top, leaf('XOR')]));
   assert.equal(h.elements['project-error'].textContent, '');
-  const rootSvg = h.doc.querySelector('svg');
-  const frames = rootSvg.querySelectorAll('.rtl-module-instance');
+  let rootSvg = h.doc.querySelector('svg');
+  let frames = rootSvg.querySelectorAll('.rtl-module-instance');
   assert.equal(frames.length, 2);
   frames[0].querySelector('.project-toggle').fire('click');
+  assert.equal(h.sent.at(-1).type, 'projectLayout');
+  h.receive(snapshot([top, leaf('XOR')])); // layout-only backend response
+  rootSvg = h.doc.querySelector('svg'); frames = rootSvg.querySelectorAll('.rtl-module-instance');
   assert.equal(frames[0].querySelector('.project-toggle').getAttribute('aria-expanded'), 'true');
   assert.equal(frames[1].querySelector('.project-toggle').getAttribute('aria-expanded'), 'false');
   frames[1].querySelector('.project-toggle').fire('keydown', { key: 'Enter' });
+  h.receive(snapshot([top, leaf('XOR')]));
+  rootSvg = h.doc.querySelector('svg'); frames = rootSvg.querySelectorAll('.rtl-module-instance');
   const firstInner = frames[0].querySelector('svg');
   const secondInner = frames[1].querySelector('svg');
   const ids = h.doc.querySelectorAll('[id]').map(el => el.id);
@@ -114,10 +120,132 @@ test('project controls request refresh/reflow, retain save preference and change
   h.receive(snapshot([top, leaf('XOR')]));
   h.elements['project-module'].value = 'leaf';
   h.elements['project-module'].fire('change');
+  assert.equal(h.sent.at(-1).type, 'projectLayout');
+  h.receive({ ...snapshot([]), viewRoot: 'leaf', selected: 'leaf' });
   assert.equal(h.state().selected, 'leaf');
   assert.ok(h.doc.querySelector('svg').textContent.includes('XOR'));
   h.elements['project-auto'].checked = false;
   h.elements['project-auto'].fire('change');
   assert.equal(h.sent.at(-1).type, 'projectAuto');
   assert.equal(h.sent.at(-1).enabled, false);
+});
+
+function segments(points) {
+  return points.slice(1).map((b, i) => ({ a: points[i], b }));
+}
+function assertNoSharedRuns(routes) {
+  for (let i = 0; i < routes.length; i++) for (let j = i + 1; j < routes.length; j++) {
+    for (const s of segments(routes[i].points)) for (const t of segments(routes[j].points)) {
+      const sh = Math.abs(s.a[1] - s.b[1]) < 0.001;
+      const th = Math.abs(t.a[1] - t.b[1]) < 0.001;
+      if (sh !== th) continue; // ordinary perpendicular crossings are not shared runs
+      const axis = sh ? 0 : 1, fixed = sh ? 1 : 0;
+      const overlap = Math.min(Math.max(s.a[axis], s.b[axis]), Math.max(t.a[axis], t.b[axis])) -
+        Math.max(Math.min(s.a[axis], s.b[axis]), Math.min(t.a[axis], t.b[axis]));
+      assert.ok(!(overlap > 0.01 && Math.abs(s.a[fixed] - t.a[fixed]) < 3),
+        `${routes[i].name} and ${routes[j].name} share a run: ${JSON.stringify(s)} / ${JSON.stringify(t)}`);
+    }
+  }
+}
+
+test('clock, reset and data bridges have separate lanes, including near-aligned entry/exit rows', () => {
+  const { route } = harness();
+  const connections = [
+    { name: 'clk', width: 1, input: true, fromY: 120.5, x: 254, y: 272 },
+    { name: 'rst', width: 1, input: true, fromY: 181, x: 132, y: 242 },
+    { name: 'd', width: 8, input: true, fromY: 241.5, x: 132, y: 92 }
+  ];
+  const routed = route(connections, 662, 332, 120);
+  assertNoSharedRuns(routed);
+  for (const wire of routed) {
+    assert.equal(wire.points[0][0], 0);
+    assert.equal(wire.points[0][1], wire.fromY);
+    assert.equal(wire.points.at(-1)[0], wire.x);
+    assert.equal(wire.points.at(-1)[1], wire.y);
+  }
+  const outputs = connections.map(c => ({ ...c, input: false, x: 662 - c.x }));
+  assertNoSharedRuns(route(outputs, 662, 332, 120));
+});
+
+test('collapsed module ports do not share the old common elbow', () => {
+  const h = harness();
+  const ports = ['clk', 'rst', 'data'].map((name, i) => ({ name, label: name, direction: 'input', width: i === 2 ? 8 : 1, y: 80 + i * 70 }));
+  const child = model('leaf', leaf('XOR').svg, ports);
+  h.receive(snapshot([top, child]));
+  const frame = h.doc.querySelector('.rtl-module-instance');
+  const paths = frame.querySelectorAll('.project-bridge');
+  const routes = paths.map(p => ({ name: p.getAttribute('data-port'), points: [...p.getAttribute('d').matchAll(/[ML]([\d.-]+),([\d.-]+)/g)].map(m => [+m[1], +m[2]]) }));
+  assert.equal(routes.length, 3);
+  assertNoSharedRuns(routes);
+  assert.equal(paths.find(p => p.getAttribute('data-port') === 'data').getAttribute('class'), 'project-bridge bus');
+  assert.equal(paths.find(p => p.getAttribute('data-port') === 'clk').getAttribute('class'), 'project-bridge');
+});
+
+test('many-port interfaces reserve distinct lanes with bus-stroke clearance', () => {
+  const { route } = harness();
+  const count = 32, gutter = 56 + (2 * count + 1) * 8;
+  const connections = Array.from({ length: count }, (_, i) => ({
+    name: 'p' + i, width: 8, input: true, fromY: 90 + i * 28, x: gutter + 30, y: 90 + (count - i - 1) * 28
+  }));
+  const routes = route(connections, gutter * 2 + 400, count * 28 + 200, gutter);
+  assertNoSharedRuns(routes);
+  assert.ok(routes.every(r => r.points.flat().every(Number.isFinite)));
+});
+
+test('expanded bridges from real project layouts keep clock/reset and data runs separate', async () => {
+  const path = require('node:path');
+  const files = require('node:fs/promises');
+  const { ProjectPipeline } = require('../out/projectPipeline');
+  const pipeline = new ProjectPipeline();
+  try {
+    const dir = path.resolve('examples/project');
+    const sources = await Promise.all((await files.readdir(dir)).filter(n => /\.svh?$/.test(n)).map(async n => ({ path: path.join(dir, n), content: await files.readFile(path.join(dir, n), 'utf8') })));
+    const result = await pipeline.runProject(sources, 'project_demo', path.resolve('resources/skins/dark-digital.svg'));
+    assert.ok(result.ok, result.error);
+    const { route } = harness();
+    for (const model of result.modules) {
+      const vb = model.svg.match(/viewBox="([^"]+)"/)[1].split(/[ ,]+/).map(Number);
+      const innerW = model.width - 2 * model.gutter, innerH = model.height - 90;
+      const scale = Math.min(innerW / vb[2], innerH / vb[3]);
+      const dx = model.gutter + (innerW - vb[2] * scale) / 2 - vb[0] * scale;
+      const dy = 60 + (innerH - vb[3] * scale) / 2 - vb[1] * scale;
+      const connections = model.ports.map(port => {
+        const cell = [...model.svg.matchAll(/<g\b[^>]*>/g)].find(m => m[0].includes(`id="cell_${port.label}"`))[0];
+        const t = cell.match(/translate\(([^,]+),([^)]*)\)/);
+        return { name: port.name, width: port.width, input: port.direction === 'input', fromY: port.y,
+          x: dx + (+t[1] + (port.direction === 'input' ? 0 : 30)) * scale, y: dy + (+t[2] + 10) * scale };
+      });
+      assertNoSharedRuns(route(connections, model.width, model.height, model.gutter));
+    }
+  } finally { await pipeline.dispose(); }
+});
+
+test('aligned ports are straight and ordinary offsets need only two bends', () => {
+  const { route } = harness();
+  const direct = route([{ name: 'a', input: true, width: 8, fromY: 80, x: 120, y: 80 }], 400, 200, 64)[0];
+  assert.equal(direct.points.length, 2);
+  const bent = route([{ name: 'a', input: true, width: 8, fromY: 80, x: 120, y: 130 }], 400, 200, 64)[0];
+  assert.equal(bent.points.length, 4);
+  const length = segments(bent.points).reduce((sum, s) => sum + Math.abs(s.a[0] - s.b[0]) + Math.abs(s.a[1] - s.b[1]), 0);
+  assert.equal(length, 170); // shortest possible orthogonal route
+});
+
+test('instance-specific layout scenes expand one instance while keeping its sibling compact', () => {
+  const h = harness({ expanded: ['top/one'] });
+  const sceneLeaf = { ...leaf('XOR'), key: '@view-leaf', baseKey: 'leaf' };
+  const sceneTop = { ...top, key: '@view-top', baseKey: 'top', svg: top.svg.replace('data-module="leaf"', 'data-module="@view-leaf"') };
+  h.receive({ ...snapshot([top, leaf('XOR'), sceneTop, sceneLeaf]),
+    sceneKeys: ['top', 'leaf', '@view-top', '@view-leaf'], viewRoot: '@view-top', selected: 'top' });
+  assert.equal(h.elements['project-error'].textContent, '');
+  assert.equal(h.elements['project-module'].value, 'top');
+  const frames = h.doc.querySelectorAll('.rtl-module-instance');
+  assert.equal(frames[0].querySelector('.project-toggle').getAttribute('aria-expanded'), 'true');
+  assert.equal(frames[1].querySelector('.project-toggle').getAttribute('aria-expanded'), 'false');
+  frames[0].querySelector('.project-toggle').fire('click');
+  assert.equal(h.sent.at(-1).type, 'projectLayout');
+  assert.equal(h.sent.at(-1).selected, 'top');
+  assert.equal(h.sent.at(-1).expanded.length, 0);
+  h.receive({ ...snapshot([{ ...sceneTop, svg: top.svg }]), sceneKeys: ['top', 'leaf', '@view-top'], viewRoot: '@view-top', selected: 'top' });
+  assert.equal(h.elements['project-error'].textContent, '');
+  for (const frame of h.doc.querySelectorAll('.rtl-module-instance')) assert.equal(frame.querySelector('.project-toggle').getAttribute('aria-expanded'), 'false');
 });

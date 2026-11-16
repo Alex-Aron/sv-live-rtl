@@ -30,7 +30,12 @@ test('project caches leaves independently, preserves parents, resolves includes/
     assert.deepEqual(unchanged.stats.synthesized, []);
     assert.deepEqual(unchanged.stats.rendered, []);
     const alu = sources.find(s => s.path.endsWith('demo_alu.sv'));
-    alu.content = alu.content.replace('a ^ b', 'a | b');
+    // The example is editable: choose a genuinely different expression even
+    // when a user has already changed the original XOR operation (e.g. XNOR).
+    const branch = alu.content.match(/2'b11:\s*y\s*=\s*([^;]+);/);
+    assert.ok(branch, 'the demo ALU must have its 11 case');
+    const replacement = branch[1].replace(/\s/g, '') === 'a^b' ? 'a | b' : 'a ^ b';
+    alu.content = alu.content.replace(branch[0], `2'b11: y = ${replacement};`);
     const edited = await pipeline.runProject(sources, 'project_demo', skin);
     assert.ok(edited.ok, edited.error);
     assert.equal(edited.stats.synthesized.length, 2); // both parameter variants
@@ -135,5 +140,63 @@ test('declared external black boxes retain their ports and cannot expand', async
     assert.equal(external.blackbox, true);
     assert.equal(external.ports.length, 2);
     assert.deepEqual(external.instances, []);
+  } finally { await pipeline.dispose(); }
+});
+
+test('collapsed hierarchy is compact; independent expansion only lays out affected ancestors', async () => {
+  const pipeline = new ProjectPipeline();
+  try {
+    const sources = await example();
+    const built = await pipeline.runProject(sources, 'project_demo', skin);
+    assert.ok(built.ok, built.error);
+    const closed = await pipeline.layoutProject('project_demo', []);
+    assert.ok(closed.ok, closed.error);
+    const rootOf = result => result.modules.find(m => m.key === result.viewRoot);
+    const size = m => +m.svg.match(/\bwidth="([^"]+)"/)[1] * +m.svg.match(/\bheight="([^"]+)"/)[1];
+    const initialArea = size(rootOf(closed));
+    const opened = await pipeline.layoutProject('project_demo', ['project_demo/left_stage']);
+    assert.ok(opened.ok, opened.error);
+    assert.deepEqual(opened.stats.synthesized, []);
+    assert.ok(size(rootOf(opened)) > initialArea);
+    const frames = [...rootOf(opened).svg.matchAll(/<g class="rtl-module-instance"[^>]*>/g)].map(m => m[0]);
+    const left = frames.find(g => g.includes('id="cell_left_stage"'));
+    const right = frames.find(g => g.includes('id="cell_right_stage"'));
+    assert.ok(+left.match(/s:width="([^"]+)"/)[1] > +right.match(/s:width="([^"]+)"/)[1]);
+    const deeper = await pipeline.layoutProject('project_demo', ['project_demo/left_stage', 'project_demo/left_stage/arithmetic']);
+    assert.ok(deeper.ok, deeper.error);
+    assert.ok(size(rootOf(deeper)) > size(rootOf(opened)));
+    assert.deepEqual(deeper.stats.synthesized, []);
+    const again = await pipeline.layoutProject('project_demo', []);
+    assert.ok(again.ok, again.error);
+    assert.equal(size(rootOf(again)), initialArea);
+    assert.deepEqual(again.stats.synthesized, []);
+    const stable = await pipeline.layoutProject('project_demo', []);
+    assert.deepEqual(stable.stats.rendered, []);
+  } finally { await pipeline.dispose(); }
+});
+
+test('logic-only edits in expanded scenes preserve ancestor SVGs and frame geometry', async () => {
+  const pipeline = new ProjectPipeline();
+  try {
+    const sources = await example();
+    const build = await pipeline.runProject(sources, 'project_demo', skin);
+    assert.ok(build.ok, build.error);
+    const paths = ['project_demo/left_stage', 'project_demo/left_stage/arithmetic'];
+    const first = await pipeline.layoutProject('project_demo', paths);
+    assert.ok(first.ok, first.error);
+    const alu = sources.find(s => s.path.endsWith('demo_alu.sv'));
+    alu.content = alu.content.replace('a + b', 'a - b');
+    const changed = await pipeline.runProject(sources, 'project_demo', skin);
+    assert.ok(changed.ok, changed.error);
+    const next = await pipeline.layoutProject('project_demo', paths);
+    assert.ok(next.ok, next.error);
+    const rootBefore = first.modules.find(m => m.key === first.viewRoot);
+    const rootAfter = next.modules.find(m => m.key === next.viewRoot);
+    assert.equal(rootAfter.svg, rootBefore.svg);
+    const stageBefore = first.modules.find(m => m.baseKey && m.name === 'demo_stage');
+    const stageAfter = next.modules.find(m => m.key === stageBefore.key);
+    assert.equal(stageAfter.svg, stageBefore.svg);
+    assert.equal(stageAfter.width, stageBefore.width);
+    assert.equal(stageAfter.height, stageBefore.height);
   } finally { await pipeline.dispose(); }
 });

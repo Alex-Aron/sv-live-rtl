@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ProjectPipeline, ProjectSource, ProjectModule } from './projectPipeline';
+import { ProjectPipeline, ProjectSource, ProjectModule, ProjectResult } from './projectPipeline';
 import { getProjectWebviewHtml } from './projectWebview';
 import { getViewerTheme, getViewerPalette } from './webview';
 import { sanitizePalette } from './palette';
@@ -31,13 +31,25 @@ class ProjectView implements vscode.Disposable {
   private queued = false;
   private reflowQueued = false;
   auto = false;
+  private expanded: string[] = [];
+  private selected?: string;
+  private layoutGeneration = 0;
+  private lastError?: string;
 
   constructor(private context: vscode.ExtensionContext, readonly folder: vscode.WorkspaceFolder, readonly top: string, onDispose: () => void) {
     this.panel = vscode.window.createWebviewPanel('svProjectRtl', `Project RTL: ${top}`, vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'resources')] });
     this.panel.webview.onDidReceiveMessage(async message => {
-      if (message.type === 'projectReady') { this.sent.clear(); this.auto = !!message.auto; void this.refresh(); }
-      else if (message.type === 'projectRefresh') void this.refresh(!!message.reflow);
+      if (message.type === 'projectReady') {
+        this.sent.clear(); this.auto = !!message.auto;
+        this.expanded = Array.isArray(message.expanded) ? message.expanded.filter((p: unknown) => typeof p === 'string').slice(0, 10000) : [];
+        this.selected = typeof message.selected === 'string' ? message.selected : this.top;
+        void this.refresh();
+      } else if (message.type === 'projectLayout') {
+        this.expanded = Array.isArray(message.expanded) ? message.expanded.filter((p: unknown) => typeof p === 'string').slice(0, 10000) : [];
+        this.selected = typeof message.selected === 'string' ? message.selected : this.top;
+        void this.publishLayout();
+      } else if (message.type === 'projectRefresh') void this.refresh(!!message.reflow);
       else if (message.type === 'projectAuto') this.auto = !!message.enabled;
       else if (message.type === 'setTheme' && ['auto', 'dark', 'light', 'custom'].includes(message.theme)) {
         await vscode.workspace.getConfiguration('sv-live-rtl').update('theme', message.theme, vscode.ConfigurationTarget.Global);
@@ -78,19 +90,38 @@ class ProjectView implements vscode.Disposable {
           }
           for (const [file, diagnostics] of byFile) this.diagnostics.set(vscode.Uri.file(file), diagnostics);
           if (!result.ok) {
+            this.lastError = result.error;
             void this.panel.webview.postMessage({ type: 'projectStatus', error: result.error });
             continue;
           }
-          const modules = result.modules!;
-          const changed: ProjectModule[] = modules.filter(m => this.sent.get(m.key) !== m.revision);
-          void this.panel.webview.postMessage({ type: 'projectSnapshot', top: this.top, modules: changed,
-            keys: modules.map(m => m.key), stats: result.stats, reflow: doReflow });
-          this.sent = new Map(modules.map(m => [m.key, m.revision]));
+          this.lastError = undefined;
+          await this.publishLayout(doReflow, result.stats);
         } catch (error: any) {
           if (!this.disposed) void this.panel.webview.postMessage({ type: 'projectStatus', error: error.message || String(error) });
         }
       }
     } finally { this.running = false; }
+  }
+  private async publishLayout(reflow = false, buildStats?: ProjectResult['stats']) {
+    const generation = ++this.layoutGeneration;
+    if (!buildStats) void this.panel.webview.postMessage({ type: 'projectStatus', layout: true });
+    const result = await this.pipeline.layoutProject(this.selected || this.top, this.expanded, reflow);
+    if (this.disposed || generation !== this.layoutGeneration) return;
+    if (!result.ok) {
+      void this.panel.webview.postMessage({ type: 'projectStatus', error: result.error });
+      return;
+    }
+    this.selected = result.selected;
+    const modules = result.modules!;
+    const changed: ProjectModule[] = modules.filter(m => this.sent.get(m.key) !== m.revision);
+    const stats = { synthesized: buildStats?.synthesized || [],
+      rendered: [...new Set([...(buildStats?.rendered || []), ...result.stats!.rendered])],
+      reused: buildStats?.reused ?? result.stats!.reused };
+    void this.panel.webview.postMessage({ type: 'projectSnapshot', top: this.top, modules: changed,
+      keys: result.moduleKeys, sceneKeys: modules.map(m => m.key), viewRoot: result.viewRoot,
+      selected: this.selected, stats, reflow });
+    this.sent = new Map(modules.map(m => [m.key, m.revision]));
+    if (this.lastError) void this.panel.webview.postMessage({ type: 'projectStatus', error: this.lastError });
   }
   dispose() {
     if (this.disposed) return;

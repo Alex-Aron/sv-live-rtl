@@ -44,6 +44,10 @@ skin's standalone dark fallback colors. Keep wire junction fills and text styles
 in sync when editing palettes. Styles in the skin are scoped to `.rtl-schematic`
 so they do not affect the surrounding toolbar and legend.
 
+The active skin uses ELK's `NETWORK_SIMPLEX` layering with 60-unit layer spacing
+and 30-unit node spacing to reduce unnecessary wire length while leaving room
+for inline bus labels.
+
 Both SVGs and the license are shipped as extension resources. After editing,
 run `npm test`, then open the counter example in the Extension Development Host.
 

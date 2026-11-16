@@ -23,9 +23,11 @@ then click **Refresh project**, or save with **Refresh on save** enabled. Only
 the two ALU specializations should be synthesized and laid out again; the stage,
 register, and top-level layouts should be reused. Restore XOR afterward if desired.
 
-Frames reserve room for internals, including while collapsed. **Reflow layout**
-updates those reserved dimensions after larger changes. **Fit** shows the entire
-current module, and the View dropdown allows inspecting a child on its own.
+Collapsed instances use compact boxes. Expanding an instance reserves room for
+its contents and rearranges affected ancestors, using cached synthesis results.
+Ordinary source edits preserve those expanded frame sizes; **Reflow layout**
+updates them after larger changes. **Fit** shows the entire current module, and
+the View dropdown allows inspecting a child on its own.
 
 `demo_defs.svh` supplies the top-level data width. The viewer snapshots this
 header and unsaved source edits alongside the compilation units.

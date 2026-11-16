@@ -14,13 +14,15 @@ export const escapeXml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp
 export interface ProjectSource { path: string; content: string }
 export interface ProjectPort { name: string; label: string; direction: string; width: number; y: number }
 export interface ProjectModule {
-  key: string; name: string; svg: string; revision: string; width: number; height: number;
+  key: string; name: string; svg: string; revision: string; width: number; height: number; gutter: number;
+  baseKey?: string;
   ports: ProjectPort[]; instances: { name: string; module: string }[]; blackbox: boolean;
 }
 export interface ProjectDiagnostic { file: string; line: number; column: number; severity: 'Error' | 'Warning'; message: string }
 export interface ProjectResult {
   ok: boolean; error?: string; diagnostics: ProjectDiagnostic[]; top: string;
   modules?: ProjectModule[]; stats?: { synthesized: string[]; rendered: string[]; reused: number };
+  moduleKeys?: string[]; viewRoot?: string; selected?: string;
 }
 interface Cache { synthesis: string; netlist: any; render: string; module: ProjectModule }
 interface IlModule { key: string; block: string; stub: string; blackbox: boolean }
@@ -66,7 +68,7 @@ function modulePorts(mod: any, height: number): ProjectPort[] {
   return entries.map(([name, p], i) => {
     const side = p.direction === 'input' ? 'input' : 'output';
     return { name, label: labels[i], direction: p.direction, width: p.bits.length,
-      y: 60 + (++indexes[side]) * (height - 90) / (counts[side] + 1) };
+      y: (height - (Math.max(counts.input, counts.output) * 24 + 76)) / 2 + 60 + indexes[side]++ * 24 };
   });
 }
 
@@ -84,6 +86,9 @@ function frameTemplate(child: ProjectModule): string {
 
 export class ProjectPipeline {
   private cache = new Map<string, Cache>();
+  private scenes = new Map<string, { fingerprint: string; geometry: string; model: ProjectModule }>();
+  private skin = '';
+  private projectTop = '';
   // Serialize refreshes so cache publication remains atomic and dispose is safe.
   private pending: Promise<unknown> = Promise.resolve();
   runProject(sources: ProjectSource[], top: string, skin: string, reflow = false): Promise<ProjectResult> {
@@ -92,7 +97,13 @@ export class ProjectPipeline {
     this.pending = task.catch(() => {});
     return task;
   }
-  async dispose() { await this.pending; this.cache.clear(); }
+  layoutProject(selected: string, expanded: string[], reflow = false): Promise<ProjectResult> {
+    const paths = new Set(expanded);
+    const task = this.pending.then(() => this.layout(selected, paths, reflow));
+    this.pending = task.catch(() => {});
+    return task;
+  }
+  async dispose() { await this.pending; this.cache.clear(); this.scenes.clear(); }
 
   private async build(sources: ProjectSource[], top: string, skin: string, reflow: boolean): Promise<ProjectResult> {
     const diagnostics: ProjectDiagnostic[] = [];
@@ -177,15 +188,18 @@ export class ProjectPipeline {
           svg = postProcessSvgBuses(await fs.readFile(svgPath, 'utf8'));
           stats.rendered.push(key);
         }
-        const attrs = svg.match(/<svg\b[^>]*>/)?.[0] || '';
-        const minHeight = Math.max(Math.max(Object.values<any>(raw.ports).filter(p => p.direction === 'input').length, Object.values<any>(raw.ports).filter(p => p.direction !== 'input').length) * 24 + 110, 180);
-        const width = !reflow && old ? old.module.width : Math.max(Number(attrs.match(/\bwidth="([^"]+)"/)?.[1]) + 240, 420);
-        const height = !reflow && old ? Math.max(old.module.height, minHeight) : Math.max(Number(attrs.match(/\bheight="([^"]+)"/)?.[1]) + 90, minHeight);
+        const sidePorts = Math.max(Object.values<any>(raw.ports).filter(p => p.direction === 'input').length, Object.values<any>(raw.ports).filter(p => p.direction !== 'input').length);
+        const gutter = Math.max(64, 48 + sidePorts * 8);
+        const minWidth = 2 * gutter + 240;
+        // Parent layouts reserve the compact interface, not all descendants.
+        // Expanded instances receive natural-sized frames in layoutProject().
+        const width = minWidth;
+        const height = Math.max(sidePorts * 24 + 92, 140);
         const ports = modulePorts(interfaces[key], height);
         const name = String(interfaces[key].attributes?.hdlname || key).split(' ')[0];
         entry.render = renderKey;
-        entry.module = { key, name, svg, width, height, ports, instances, blackbox: block.blackbox,
-          revision: hash(renderKey + svg + JSON.stringify({ ports, width, height })) };
+        entry.module = { key, name, svg, width, height, gutter, ports, instances, blackbox: block.blackbox,
+          revision: hash(renderKey + svg + JSON.stringify({ ports, width, height, gutter })) };
         visiting.delete(key);
         return entry.module;
       };
@@ -194,10 +208,89 @@ export class ProjectPipeline {
       // Publish only complete, successful snapshots. A tool failure keeps all
       // previously displayed modules and their caches intact.
       this.cache = next;
+      this.skin = skinText;
+      this.projectTop = top;
       return { ok: true, top, diagnostics, modules: [...next.values()].map(e => e.module).filter(Boolean), stats };
     } catch (error: any) {
       return { ok: false, top, diagnostics, error: error.stderr || error.message || 'Project synthesis failed.' };
     } finally { await fs.rm(dir, { recursive: true, force: true }); }
+  }
+
+  private async layout(selected: string, expanded: Set<string>, reflow: boolean): Promise<ProjectResult> {
+    const top = this.projectTop;
+    if (!this.cache.has(selected)) selected = top;
+    if (!this.cache.has(selected)) return { ok: false, top, diagnostics: [], error: 'Generate a valid project snapshot first.' };
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sv-project-layout-'));
+    const models = new Map([...this.cache].map(([key, entry]) => [key, entry.module]));
+    const next = new Map(this.scenes);
+    const rendered: string[] = [];
+    try {
+      const visit = async (baseKey: string, instancePath: string): Promise<ProjectModule> => {
+        const base = this.cache.get(baseKey)!;
+        const key = '@view-' + hash(instancePath).slice(0, 24);
+        const children: { instance: string; model: ProjectModule }[] = [];
+        for (const instance of base.module.instances) {
+          const childPath = instancePath + '/' + encodeURIComponent(instance.name);
+          children.push({ instance: instance.name, model: expanded.has(childPath) && !this.cache.get(instance.module)!.module.blackbox
+            ? await visit(instance.module, childPath) : this.cache.get(instance.module)!.module });
+        }
+        const geometry = JSON.stringify(children.map(c => [c.instance, c.model.key, c.model.width, c.model.height, c.model.ports]));
+        const fingerprint = hash(base.synthesis + this.skin + geometry);
+        const old = this.scenes.get(key);
+        const plain = children.every(c => c.model.key === base.netlist.modules[baseKey].cells[c.instance].type);
+        let svg = plain ? base.module.svg : old?.fingerprint === fingerprint && !reflow ? old.model.svg : '';
+        if (!svg) {
+          const netlist = transformYosysNetlist(structuredClone(base.netlist));
+          for (const child of children) netlist.modules[baseKey].cells[child.instance].type = child.model.key;
+          const json = path.join(dir, 'view.json'), output = path.join(dir, 'view.svg'), skin = path.join(dir, 'view-skin.svg');
+          await fs.writeFile(json, JSON.stringify(netlist));
+          const unique = [...new Map(children.map(c => [c.model.key, c.model])).values()];
+          await fs.writeFile(skin, this.skin.replace('</svg>', unique.map(frameTemplate).join('\n') + '</svg>'));
+          await exec('netlistsvg', [json, '-o', output, '--skin', skin], { maxBuffer: 8 * 1024 * 1024 });
+          svg = postProcessSvgBuses(await fs.readFile(output, 'utf8'));
+          rendered.push(baseKey);
+        }
+        const attrs = svg.match(/<svg\b[^>]*>/)?.[0] || '';
+        const sameInterface = old && JSON.stringify(old.model.ports.map(p => [p.name, p.label, p.direction, p.width])) ===
+          JSON.stringify(base.module.ports.map(p => [p.name, p.label, p.direction, p.width]));
+        const structureChanged = old && old.geometry !== geometry;
+        const keepFrame = old && sameInterface && !structureChanged && !reflow;
+        const width = keepFrame ? old.model.width : Math.max(base.module.width, Number(attrs.match(/\bwidth="([^"]+)"/)?.[1]) + 2 * base.module.gutter);
+        const height = keepFrame ? old.model.height : Math.max(base.module.height, Number(attrs.match(/\bheight="([^"]+)"/)?.[1]) + 90);
+        const ports = keepFrame ? old.model.ports : this.alignedPorts(base.module.ports, svg, width, height, base.module.gutter);
+        const model = { ...base.module, key, baseKey, svg, width, height, ports,
+          instances: children.map(c => ({ name: c.instance, module: c.model.key })),
+          revision: hash(fingerprint + svg + JSON.stringify({ width, height, ports })) };
+        next.set(key, { fingerprint, geometry, model }); models.set(key, model);
+        return model;
+      };
+      const root = await visit(selected, selected);
+      this.scenes = next;
+      return { ok: true, top, diagnostics: [], selected, viewRoot: root.key,
+        moduleKeys: [...this.cache.keys()], modules: [...models.values()],
+        stats: { synthesized: [], rendered, reused: this.cache.size } };
+    } catch (error: any) {
+      return { ok: false, top, diagnostics: [], error: error.stderr || error.message || 'Project layout failed.' };
+    } finally { await fs.rm(dir, { recursive: true, force: true }); }
+  }
+
+  private alignedPorts(ports: ProjectPort[], svg: string, width: number, height: number, gutter: number): ProjectPort[] {
+    const vb = svg.match(/viewBox="([^"]+)"/)?.[1].split(/[ ,]+/).map(Number) || [0, 0, width - 2 * gutter, height - 90];
+    const scale = Math.min((width - 2 * gutter) / vb[2], (height - 90) / vb[3]);
+    const dy = 60 + (height - 90 - vb[3] * scale) / 2 - vb[1] * scale;
+    const groups = [...svg.matchAll(/<g\b[^>]*>/g)].map(m => m[0]);
+    const result = ports.map(p => {
+      const tag = groups.find(g => g.includes(`id="cell_${escapeXml(p.label)}"`));
+      const t = tag?.match(/translate\(([^,]+),([^)]*)\)/);
+      return { ...p, y: t ? dy + (+t[2] + 10) * scale : p.y };
+    });
+    for (const direction of ['input', 'output']) {
+      const side = result.filter(p => p.direction === direction).sort((a, b) => a.y - b.y);
+      for (let i = 1; i < side.length; i++) side[i].y = Math.max(side[i].y, side[i-1].y + 24);
+      if (side.length) side[side.length - 1].y = Math.min(side[side.length - 1].y, height - 24);
+      for (let i = side.length - 2; i >= 0; i--) side[i].y = Math.min(side[i].y, side[i+1].y - 24);
+    }
+    return result;
   }
 
   private diagnostics(stderr: string, files: Map<string, string>, out: ProjectDiagnostic[]) {

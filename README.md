@@ -102,17 +102,23 @@ they are not compiled as separate units.
   last valid project visible and report diagnostics/status.
 - **Module view:** Use the View dropdown to inspect any elaborated module as the
   root. Parameter specializations have separate cached results.
-- **Stable layout:** Expansion and ordinary logic edits use reserved module
-  frames so parent wires and sibling modules stay in place. Internal diagrams
-  scale to fit their frame. Use **Reflow layout** to resize frames and rearrange
-  the hierarchy after substantial changes. Fit and zoom controls help navigate.
+- **Compact layout:** Collapsed instances occupy only their interface boxes.
+  Expanding or collapsing an instance lays out its affected ancestors again,
+  using cached netlists without running synthesis. Repeated instances can have
+  different sizes when one is expanded and the other is collapsed.
+- **Stable source updates:** Ordinary logic edits preserve the current expanded
+  frame sizes and parent layouts. Use **Reflow layout** to resize expanded frames
+  after substantial changes. Boundary ports align with internal I/O where
+  possible; wires use straight runs or two bends, with separated-lane detours
+  only where needed to avoid shared segments. Fit and zoom controls help navigate.
 
 Linting and hierarchy elaboration still run across the project on refresh to
 resolve dependencies and parameters correctly. Synthesis and netlistsvg layout
-are cached per elaborated module. A logic-only leaf edit rebuilds that leaf and
+are cached per elaborated module and visible hierarchy layout. A logic-only leaf edit rebuilds that leaf and
 patches its expanded instances; unchanged parents reuse their existing SVGs.
 Interface changes also invalidate affected parents. Reflow reruns layouts while
-reusing synthesized netlists. Cache statistics appear above the schematic.
+reusing synthesized netlists. Opening a module from the View dropdown also uses
+the cached netlists. Cache statistics appear above the schematic.
 
 To try it, open `examples/project/project_demo.sv`, run the project command,
 and select **project_demo**. Expand `left_stage` or `right_stage`, then expand

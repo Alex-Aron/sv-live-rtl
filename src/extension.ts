@@ -95,7 +95,7 @@ async function triggerUpdate(document: vscode.TextDocument) {
   // Notify webview we are linting/synthesizing
   panel?.webview.postMessage({ type: 'status', state: 'synthesizing' });
 
-  const result = await pipeline.run(code, customSkinPath);
+  const result = await pipeline.run(code, customSkinPath, vscode.workspace.getConfiguration('sv-live-rtl').get<number>('wireLaneSpacing', 16));
 
   // If a newer update was triggered while this one was synthesizing, discard this stale result
   if (updateId !== currentUpdateId) {

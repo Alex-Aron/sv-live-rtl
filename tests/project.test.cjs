@@ -200,3 +200,71 @@ test('logic-only edits in expanded scenes preserve ancestor SVGs and frame geome
     assert.equal(stageAfter.height, stageBefore.height);
   } finally { await pipeline.dispose(); }
 });
+
+test('wire spacing updates layout and boundary gutters without resynthesizing logic', async () => {
+  const pipeline = new ProjectPipeline();
+  const source = { path: '/tmp/spacing-top.sv', content: 'module top(input [7:0] a,b, input s, output [7:0] y); assign y=s?a:b; endmodule' };
+  try {
+    const first = await pipeline.runProject([source], 'top', skin, false, 16);
+    assert.ok(first.ok, first.error);
+    const before = first.modules.find(m => m.key === 'top');
+    const changed = await pipeline.runProject([source], 'top', skin, false, 24);
+    assert.ok(changed.ok, changed.error);
+    assert.deepEqual(changed.stats.synthesized, []);
+    assert.ok(changed.stats.rendered.includes('top'));
+    const after = changed.modules.find(m => m.key === 'top');
+    assert.equal(after.wireLaneSpacing, 24);
+    assert.ok(after.gutter > before.gutter);
+    assert.notEqual(after.revision, before.revision);
+    const scene = await pipeline.layoutProject('top', []);
+    assert.ok(scene.ok, scene.error);
+    const root = scene.modules.find(m => m.key === scene.viewRoot);
+    assert.ok(root.gutter >= after.gutter + 'a [7:0]'.length * 7.2 + 16);
+  } finally { await pipeline.dispose(); }
+});
+
+test('RISC output labels occupy reserved nodes clear of vertical trunks in compact and expanded layouts', async () => {
+  const pipeline = new ProjectPipeline();
+  const dir = path.resolve('examples/risc_example');
+  const sources = await Promise.all((await fs.readdir(dir)).filter(n => /\.svh?$/.test(n)).map(async n => ({
+    path: path.join(dir, n), content: await fs.readFile(path.join(dir, n), 'utf8')
+  })));
+  const attributes = text => Object.fromEntries([...text.matchAll(/([\w:-]+)="([^"]*)"/g)].map(m => [m[1], m[2]]));
+  try {
+    const built = await pipeline.runProject(sources, 'riscv_top', skin);
+    assert.ok(built.ok, built.error);
+    const expanded = await pipeline.layoutProject('riscv_top', ['riscv_top/cpu']);
+    assert.ok(expanded.ok, expanded.error);
+    assert.deepEqual(expanded.stats.synthesized, []);
+    let checked = 0;
+    for (const model of expanded.modules) {
+      const vertical = [...model.svg.matchAll(/<line\b[^>]*>/g)].map(m => attributes(m[0])).filter(a => a.class?.includes('net_') && +a.x1 === +a.x2);
+      for (const group of model.svg.matchAll(/<g\b[^>]*s:type="outputExt"[^>]*>([\s\S]*?)<\/g>/g)) {
+        const a = attributes(group[0].slice(0, group[0].indexOf('>')));
+        const [gx, gy] = a.transform.match(/translate\(([^,]+),([^)]*)\)/).slice(1).map(Number);
+        const text = group[1].match(/<text\b([^>]*)>([^<]*)<\/text>/);
+        const label = attributes(text[1]);
+        assert.equal(label['text-anchor'], 'start');
+        assert.match(label.style, /text-anchor:start/);
+        assert.ok(+a['s:width'] >= +label.x + text[2].length * 6.5);
+        assert.match(group[1], /s:y="30" s:pid="A"/);
+        const left = gx + +label.x, right = left + text[2].length * 6.5;
+        const top = gy + +label.y - 12, bottom = gy + +label.y + 5;
+        for (const wire of vertical) assert.ok(!(+wire.x1 > left && +wire.x1 < right &&
+          Math.max(+wire.y1, +wire.y2) > top && Math.min(+wire.y1, +wire.y2) < bottom),
+          `${model.name}: vertical trunk crosses ${text[2]}`);
+        if (model.baseKey) {
+          const port = model.ports.find(p => p.label === text[2]);
+          const vb = model.svg.match(/viewBox="([^"]+)"/)[1].split(/[ ,]+/).map(Number);
+          const scale = Math.min((model.width - 2 * model.gutter) / vb[2], (model.height - 90) / vb[3]);
+          const dy = 60 + (model.height - 90 - vb[3] * scale) / 2 - vb[1] * scale;
+          assert.ok(Math.abs(port.y - (dy + (gy + 30) * scale)) < 0.01, `${text[2]} boundary must align with shifted output pin`);
+        }
+        checked++;
+      }
+    }
+    assert.ok(checked > 40);
+    const top = built.modules.find(m => m.key === 'riscv_top');
+    assert.ok(top.svg.includes('pc_debug [31:0]') && top.svg.includes('alu_debug [31:0]'));
+  } finally { await pipeline.dispose(); }
+});

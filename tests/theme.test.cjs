@@ -101,7 +101,7 @@ test('the local skin preserves upstream symbols and scopes all its styles', () =
   const original = readFileSync('resources/skins/default.svg', 'utf8');
   const custom = readFileSync('resources/skins/dark-digital.svg', 'utf8');
   const types = (skin) => [...skin.matchAll(/s:type="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(types(custom).filter(type => !type.startsWith('binary-mux')), types(original));
+  assert.deepEqual(types(custom).filter(type => !type.startsWith('binary-mux') && !type.startsWith('memory-')), types(original));
   assert.equal(types(custom).filter(type => type.startsWith('binary-mux')).length, 8);
   for (const category of ['register', 'mux', 'logic', 'port']) {
     assert.ok(custom.includes(`class="rtl-${category}"`));

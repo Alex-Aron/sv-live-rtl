@@ -78,7 +78,8 @@ class ProjectView implements vscode.Disposable {
         try {
           const sources = await readProjectSources(this.folder);
           const skin = vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'skins', 'dark-digital.svg').fsPath;
-          const result = await this.pipeline.runProject(sources, this.top, skin, doReflow);
+          const result = await this.pipeline.runProject(sources, this.top, skin, doReflow,
+            vscode.workspace.getConfiguration('sv-live-rtl').get<number>('wireLaneSpacing', 16));
           if (this.disposed) return;
           this.diagnostics.clear();
           const byFile = new Map<string, vscode.Diagnostic[]>();

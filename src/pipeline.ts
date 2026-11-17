@@ -4,6 +4,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { transformYosysNetlist, postProcessSvgBuses } from './netlistTransform';
+import { DEFAULT_WIRE_SPACING, withWireSpacing, withOutputLabelSpace } from './layoutSettings';
 
 const execFileAsync = promisify(execFile);
 const VERILATOR_DIAG_REGEX = /%(Error|Warning)[^:]*:\s+[^:]+:(\d+):(?:(\d+):)?\s+(.*)/g;
@@ -37,7 +38,7 @@ export class RtlPipeline {
     this.tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sv-rtl-'));
   }
 
-  async run(svCode: string, customSkinPath?: string): Promise<PipelineResult> {
+  async run(svCode: string, customSkinPath?: string, wireSpacing = DEFAULT_WIRE_SPACING): Promise<PipelineResult> {
     if (!this.tmpDir) {
       await this.init();
     }
@@ -73,7 +74,9 @@ export class RtlPipeline {
       // 3. Convert Yosys JSON to SVG schematic via netlistsvg
       const netlistArgs = [jsonPath, '-o', svgPath];
       if (customSkinPath) {
-        netlistArgs.push('--skin', customSkinPath);
+        const layoutSkin = path.join(this.tmpDir, 'layout-skin.svg');
+        await fs.writeFile(layoutSkin, withOutputLabelSpace(withWireSpacing(await fs.readFile(customSkinPath, 'utf8'), wireSpacing), transformedJson));
+        netlistArgs.push('--skin', layoutSkin);
       }
       await execFileAsync('netlistsvg', netlistArgs);
 

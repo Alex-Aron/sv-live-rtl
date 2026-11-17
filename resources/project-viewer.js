@@ -4,18 +4,19 @@
  * segment when an inner port happens to align with another boundary anchor.
  * Only these local bridges change; parent SVG geometry stays fixed.
  */
-function routeModuleBridgesDetour(connections, width, height, gutter) {
+function routeModuleBridgesDetour(connections, width, height, gutter, laneSpacing = 16, labelClearance = 0) {
   const routed = [];
   for (const input of [true, false]) {
     const side = connections.filter(c => c.input === input);
     if (!side.length) continue;
     const usable = Math.min(gutter, ...side.map(c => input ? c.x : width - c.x));
-    const pitch = (usable - 48) / (2 * side.length + 1);
+    const start = Math.min(labelClearance + 24, usable - 32);
+    const pitch = Math.min(laneSpacing, (usable - start - 24) / (2 * side.length + 1));
     const occupiedRows = side.flatMap(c => [c.fromY, c.y]);
     const mirror = x => input ? x : width - x;
     side.forEach((connection, index) => {
-      const outer = 24 + (index + 1) * pitch;
-      const inner = 24 + (side.length + index + 2) * pitch;
+      const outer = start + (index + 1) * pitch;
+      const inner = start + (side.length + index + 2) * pitch;
       const ideal = (connection.fromY + connection.y) / 2;
       const candidates = [ideal];
       for (let y = 12; y < height - 12; y += 4) candidates.push(y);
@@ -39,7 +40,7 @@ function routeModuleBridgesDetour(connections, width, height, gutter) {
 
 /** Prefer straight connections or one vertical leg. Use the separated-lane
  * detour only when unavoidable alignment conflicts would merge wire segments. */
-function routeModuleBridges(connections, width, height, gutter) {
+function routeModuleBridges(connections, width, height, gutter, laneSpacing = 16, labelClearance = 0) {
   const result = [];
   for (const input of [true, false]) {
     const side = connections.filter(c => c.input === input);
@@ -56,7 +57,9 @@ function routeModuleBridges(connections, width, height, gutter) {
     }
     const usable = Math.min(gutter, ...side.map(c => input ? c.x : width - c.x));
     const routes = side.map((c, i) => {
-      const lane = 20 + (order.indexOf(i) + 1) * (usable - 36) / (side.length + 1);
+      const start = Math.min(labelClearance + 20, usable - 32);
+      const pitch = Math.min(laneSpacing, (usable - start - 16) / (side.length + 1));
+      const lane = start + (order.indexOf(i) + 1) * pitch;
       const x = input ? lane : width - lane;
       const points = Math.abs(c.fromY - c.y) < 0.001
         ? [[input ? 0 : width, c.fromY], [c.x, c.y]]
@@ -75,9 +78,56 @@ function routeModuleBridges(connections, width, height, gutter) {
         if (overlap > 0.01 && Math.abs(a[u][fixed] - b[v][fixed]) < 3) conflict = true;
       }
     }
-    result.push(...(conflict ? routeModuleBridgesDetour(side, width, height, gutter) : routes));
+    result.push(...(conflict ? routeModuleBridgesDetour(side, width, height, gutter, laneSpacing, labelClearance) : routes));
   }
   return result;
+}
+
+
+/** Give unconnected bridge crossings the same raised arc as rendered ELK
+ * wires. Keep route.points untouched: they describe the electrical route and
+ * remain useful for overlap checks. Only the presentation path has gaps. */
+function decorateModuleBridgeCrossings(routes) {
+  const segments = routes.flatMap((route, index) => route.points.slice(1).map((b, i) => ({
+    a: route.points[i], b, index
+  })));
+  const vertical = segments.filter(s => s.a[0] === s.b[0] && s.a[1] !== s.b[1]);
+  const endpoints = routes.flatMap(r => [r.points[0], r.points[r.points.length - 1]]);
+  const jumps = [];
+  const decorated = routes.map((route, index) => {
+    const parts = [];
+    for (const s of segments.filter(s => s.index === index)) {
+      const [ax, ay] = s.a, [bx, by] = s.b;
+      if (ay !== by) { parts.push(`M${ax},${ay} L${bx},${by}`); continue; }
+      const low = Math.min(ax, bx), high = Math.max(ax, bx);
+      const crossings = [...new Set(vertical.filter(v => v.index !== index &&
+        v.a[0] > low + 5 && v.a[0] < high - 5 &&
+        ay > Math.min(v.a[1], v.b[1]) + 5 && ay < Math.max(v.a[1], v.b[1]) - 5
+      ).map(v => v.a[0]))].sort((a, b) => a - b);
+      const accepted = crossings.flatMap((x, i) => {
+        const radius = Math.min(4,
+          i ? (x - crossings[i - 1]) / 2 - 0.5 : 4,
+          i + 1 < crossings.length ? (crossings[i + 1] - x) / 2 - 0.5 : 4);
+        return radius < 2 || endpoints.some(p => Math.hypot(p[0] - x, p[1] - ay) < radius + 4)
+          ? [] : [{ x, radius }];
+      });
+      let from = low;
+      accepted.forEach(({ x, radius }, i) => {
+        parts.push(`M${from},${ay} L${x - radius},${ay}`);
+        // Repaint the clearance at each join without drawing a straight
+        // shoulder through the neighboring arc when crossings are close.
+        const left = Math.max(x - radius - 4, i ? accepted[i - 1].x + accepted[i - 1].radius : low);
+        const right = Math.min(x + radius + 4, i + 1 < accepted.length ? accepted[i + 1].x - accepted[i + 1].radius : high);
+        jumps.push({ ...route,
+          clearanceD: `M${x - radius},${ay} A${radius},${radius} 0 0 1 ${x + radius},${ay}`,
+          d: `M${left},${ay} L${x - radius},${ay} A${radius},${radius} 0 0 1 ${x + radius},${ay} L${right},${ay}` });
+        from = x + radius;
+      });
+      parts.push(`M${from},${ay} L${high},${ay}`);
+    }
+    return { ...route, d: parts.join(' ') };
+  });
+  return { routes: decorated, jumps };
 }
 
 (() => {
@@ -192,7 +242,9 @@ function routeModuleBridges(connections, width, height, gutter) {
         if (!t) continue;
         const input = port.direction === 'input';
         const x = dx + (+t[1] + (input ? 0 : 30)) * scale;
-        const y = dy + (+t[2] + 10) * scale;
+        const pin = [...cell.children].find(el => el.getAttribute('s:pid') === (input ? 'Y' : 'A'));
+        const pinY = Number(pin?.getAttribute('s:y') || 10);
+        const y = dy + (+t[2] + pinY) * scale;
         connections.push({ name: port.name, width: port.width, input, fromY: port.y, x, y });
       }
     } else {
@@ -202,9 +254,24 @@ function routeModuleBridges(connections, width, height, gutter) {
         group.append(svgEl('text', { x: input ? bx + 8 : bx + boxW - 8, y: y - 5, 'text-anchor': input ? 'start' : 'end', class: 'project-port-label' }, port.label));
       });
     }
-    for (const route of routeModuleBridges(connections, w, h, gutter)) {
+    // Expanded boundary labels use their own column; all vertical lanes sit
+    // beyond that column rather than cutting through another port label.
+    const labelClearance = open ? Math.max(0, ...model.ports.map(p => p.label.length * 7.2 + 16)) : 0;
+    const bridges = decorateModuleBridgeCrossings(routeModuleBridges(connections, w, h, gutter, model.wireLaneSpacing || 16, labelClearance));
+    for (const route of bridges.routes) {
       group.append(svgEl('path', { d: route.d, 'data-port': route.name,
         class: 'project-bridge' + (route.width > 1 ? ' bus' : '') }));
+    }
+    // Paint every crossing above the other bridge paths. A canvas-colored
+    // underlay gives a visible clearance beneath the raised arc.
+    for (const jump of bridges.jumps) {
+      group.append(svgEl('path', { d: jump.clearanceD, class: 'wire-jump-clearance',
+        style: `fill:none;stroke:var(--rtl-background,#1e1e1e);stroke-width:${jump.width > 1 ? 6.5 : 5}px` }));
+    }
+    for (const jump of bridges.jumps) {
+      group.append(svgEl('path', { d: jump.d, 'data-port': jump.name,
+        class: 'project-bridge wire-jump' + (jump.width > 1 ? ' bus' : ''),
+        'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
     }
     if (open) for (const port of model.ports) group.append(svgEl('text', {
       x: port.direction === 'input' ? 8 : w - 8, y: port.y - 5,

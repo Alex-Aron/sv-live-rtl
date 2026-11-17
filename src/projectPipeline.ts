@@ -6,6 +6,7 @@ import * as os from 'os';
 import { createHash } from 'crypto';
 import { RTL_SYNTHESIS_PASSES } from './pipeline';
 import { transformYosysNetlist, postProcessSvgBuses } from './netlistTransform';
+import { withWireSpacing, withOutputLabelSpace } from './layoutSettings';
 
 const exec = promisify(execFile);
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -15,7 +16,7 @@ export interface ProjectSource { path: string; content: string }
 export interface ProjectPort { name: string; label: string; direction: string; width: number; y: number }
 export interface ProjectModule {
   key: string; name: string; svg: string; revision: string; width: number; height: number; gutter: number;
-  baseKey?: string;
+  baseKey?: string; wireLaneSpacing?: number;
   ports: ProjectPort[]; instances: { name: string; module: string }[]; blackbox: boolean;
 }
 export interface ProjectDiagnostic { file: string; line: number; column: number; severity: 'Error' | 'Warning'; message: string }
@@ -89,11 +90,12 @@ export class ProjectPipeline {
   private scenes = new Map<string, { fingerprint: string; geometry: string; model: ProjectModule }>();
   private skin = '';
   private projectTop = '';
+  private wireLaneSpacing = 16;
   // Serialize refreshes so cache publication remains atomic and dispose is safe.
   private pending: Promise<unknown> = Promise.resolve();
-  runProject(sources: ProjectSource[], top: string, skin: string, reflow = false): Promise<ProjectResult> {
+  runProject(sources: ProjectSource[], top: string, skin: string, reflow = false, wireLaneSpacing = 16): Promise<ProjectResult> {
     const snapshot = sources.map(source => ({ ...source }));
-    const task = this.pending.then(() => this.build(snapshot, top, skin, reflow));
+    const task = this.pending.then(() => this.build(snapshot, top, skin, reflow, Math.max(6, Math.min(40, Number.isFinite(wireLaneSpacing) ? wireLaneSpacing : 16))));
     this.pending = task.catch(() => {});
     return task;
   }
@@ -105,7 +107,7 @@ export class ProjectPipeline {
   }
   async dispose() { await this.pending; this.cache.clear(); this.scenes.clear(); }
 
-  private async build(sources: ProjectSource[], top: string, skin: string, reflow: boolean): Promise<ProjectResult> {
+  private async build(sources: ProjectSource[], top: string, skin: string, reflow: boolean, wireLaneSpacing: number): Promise<ProjectResult> {
     const diagnostics: ProjectDiagnostic[] = [];
     if (!/^[a-zA-Z_][\w$]*$/.test(top)) return { ok: false, top, diagnostics, error: 'Choose a top module with a standard SystemVerilog identifier.' };
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sv-project-'));
@@ -143,7 +145,7 @@ export class ProjectPipeline {
       const interfaces = JSON.parse(await fs.readFile(interfacesPath, 'utf8')).modules;
       if (!blocks.some(b => b.key === top)) throw new Error(`Top module ${top} was not elaborated.`);
       if (blocks.some(b => Object.values<any>(interfaces[b.key].ports).some(p => p.direction === 'inout'))) throw new Error('Bidirectional inout ports are not supported by the project schematic yet.');
-      const skinText = await fs.readFile(skin, 'utf8');
+      const skinText = withWireSpacing(await fs.readFile(skin, 'utf8'), wireLaneSpacing);
       const skinHash = hash(skinText);
       const next = new Map<string, Cache>();
       const stats = { synthesized: [] as string[], rendered: [] as string[], reused: 0 };
@@ -183,13 +185,13 @@ export class ProjectPipeline {
           const netlist = transformYosysNetlist(structuredClone(entry.netlist));
           const json = path.join(dir, 'render.json'), svgPath = path.join(dir, 'render.svg'), customSkin = path.join(dir, 'skin.svg');
           await fs.writeFile(json, JSON.stringify(netlist));
-          await fs.writeFile(customSkin, skinText.replace('</svg>', children.map(frameTemplate).join('\n') + '</svg>'));
+          await fs.writeFile(customSkin, withOutputLabelSpace(skinText.replace('</svg>', children.map(frameTemplate).join('\n') + '</svg>'), netlist));
           await exec('netlistsvg', [json, '-o', svgPath, '--skin', customSkin], { maxBuffer: 8 * 1024 * 1024 });
           svg = postProcessSvgBuses(await fs.readFile(svgPath, 'utf8'));
           stats.rendered.push(key);
         }
         const sidePorts = Math.max(Object.values<any>(raw.ports).filter(p => p.direction === 'input').length, Object.values<any>(raw.ports).filter(p => p.direction !== 'input').length);
-        const gutter = Math.max(64, 48 + sidePorts * 8);
+        const gutter = 48 + (sidePorts + 1) * wireLaneSpacing;
         const minWidth = 2 * gutter + 240;
         // Parent layouts reserve the compact interface, not all descendants.
         // Expanded instances receive natural-sized frames in layoutProject().
@@ -198,7 +200,7 @@ export class ProjectPipeline {
         const ports = modulePorts(interfaces[key], height);
         const name = String(interfaces[key].attributes?.hdlname || key).split(' ')[0];
         entry.render = renderKey;
-        entry.module = { key, name, svg, width, height, gutter, ports, instances, blackbox: block.blackbox,
+        entry.module = { key, name, svg, width, height, gutter, wireLaneSpacing, ports, instances, blackbox: block.blackbox,
           revision: hash(renderKey + svg + JSON.stringify({ ports, width, height, gutter })) };
         visiting.delete(key);
         return entry.module;
@@ -210,6 +212,7 @@ export class ProjectPipeline {
       this.cache = next;
       this.skin = skinText;
       this.projectTop = top;
+      this.wireLaneSpacing = wireLaneSpacing;
       return { ok: true, top, diagnostics, modules: [...next.values()].map(e => e.module).filter(Boolean), stats };
     } catch (error: any) {
       return { ok: false, top, diagnostics, error: error.stderr || error.message || 'Project synthesis failed.' };
@@ -245,7 +248,7 @@ export class ProjectPipeline {
           const json = path.join(dir, 'view.json'), output = path.join(dir, 'view.svg'), skin = path.join(dir, 'view-skin.svg');
           await fs.writeFile(json, JSON.stringify(netlist));
           const unique = [...new Map(children.map(c => [c.model.key, c.model])).values()];
-          await fs.writeFile(skin, this.skin.replace('</svg>', unique.map(frameTemplate).join('\n') + '</svg>'));
+          await fs.writeFile(skin, withOutputLabelSpace(this.skin.replace('</svg>', unique.map(frameTemplate).join('\n') + '</svg>'), netlist));
           await exec('netlistsvg', [json, '-o', output, '--skin', skin], { maxBuffer: 8 * 1024 * 1024 });
           svg = postProcessSvgBuses(await fs.readFile(output, 'utf8'));
           rendered.push(baseKey);
@@ -254,11 +257,15 @@ export class ProjectPipeline {
         const sameInterface = old && JSON.stringify(old.model.ports.map(p => [p.name, p.label, p.direction, p.width])) ===
           JSON.stringify(base.module.ports.map(p => [p.name, p.label, p.direction, p.width]));
         const structureChanged = old && old.geometry !== geometry;
-        const keepFrame = old && sameInterface && !structureChanged && !reflow;
-        const width = keepFrame ? old.model.width : Math.max(base.module.width, Number(attrs.match(/\bwidth="([^"]+)"/)?.[1]) + 2 * base.module.gutter);
+        const keepFrame = old && sameInterface && !structureChanged && !reflow && old.model.wireLaneSpacing === this.wireLaneSpacing;
+        // Labels occupy the boundary side of the routing corridor. Reserve a
+        // separate lane column so vertical bridges never run through them.
+        const labelWidth = Math.max(0, ...base.module.ports.map(p => p.label.length * 7.2 + 16));
+        const gutter = base.module.gutter + labelWidth;
+        const width = keepFrame ? old.model.width : Math.max(base.module.width, Number(attrs.match(/\bwidth="([^"]+)"/)?.[1]) + 2 * gutter);
         const height = keepFrame ? old.model.height : Math.max(base.module.height, Number(attrs.match(/\bheight="([^"]+)"/)?.[1]) + 90);
-        const ports = keepFrame ? old.model.ports : this.alignedPorts(base.module.ports, svg, width, height, base.module.gutter);
-        const model = { ...base.module, key, baseKey, svg, width, height, ports,
+        const ports = keepFrame ? old.model.ports : this.alignedPorts(base.module.ports, svg, width, height, gutter);
+        const model = { ...base.module, key, baseKey, svg, width, height, gutter, ports,
           instances: children.map(c => ({ name: c.instance, module: c.model.key })),
           revision: hash(fingerprint + svg + JSON.stringify({ width, height, ports })) };
         next.set(key, { fingerprint, geometry, model }); models.set(key, model);
@@ -282,7 +289,11 @@ export class ProjectPipeline {
     const result = ports.map(p => {
       const tag = groups.find(g => g.includes(`id="cell_${escapeXml(p.label)}"`));
       const t = tag?.match(/translate\(([^,]+),([^)]*)\)/);
-      return { ...p, y: t ? dy + (+t[2] + 10) * scale : p.y };
+      const start = tag ? svg.indexOf(tag) + tag.length : 0;
+      const body = tag ? svg.slice(start, svg.indexOf('</g>', start)) : '';
+      const pin = [...body.matchAll(/<g\b[^>]*>/g)].find(m => m[0].includes(`s:pid="${p.direction === 'input' ? 'Y' : 'A'}"`))?.[0];
+      const pinY = Number(pin?.match(/s:y="([^"]+)"/)?.[1] || 10);
+      return { ...p, y: t ? dy + (+t[2] + pinY) * scale : p.y };
     });
     for (const direction of ['input', 'output']) {
       const side = result.filter(p => p.direction === direction).sort((a, b) => a.y - b.y);

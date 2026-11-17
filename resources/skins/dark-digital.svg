@@ -1,7 +1,7 @@
 <svg class="rtl-schematic"  xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
   xmlns:s="https://github.com/nturley/netlistsvg"
-  width="800" height="500">
+  width="1550" height="1320">
   <s:properties>
     <s:layoutEngine
       org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers="60"
@@ -59,7 +59,7 @@ svg.rtl-schematic {
 .rtl-schematic .rtl-mux path:not([d$="Z"]):not([d$="z"]) { fill: none; }
 </style>
 
-  <g class="rtl-mux" s:type="mux" transform="translate(50, 50)" s:width="20" s:height="40">
+  <g class="rtl-mux" s:type="mux" transform="translate(1000,1210)" s:width="20" s:height="40">
     <s:alias val="$pmux"/>
     <s:alias val="$mux"/>
     <s:alias val="$_MUX_"/>
@@ -74,7 +74,7 @@ svg.rtl-schematic {
     <g s:x="20" s:y="20" s:pid="Y"/>
   </g>
 
-  <g class="rtl-mux" s:type="mux-bus" transform="translate(100, 50)" s:width="24" s:height="40">
+  <g class="rtl-mux" s:type="mux-bus" transform="translate(1140,1210)" s:width="24" s:height="40">
     <s:alias val="$pmux-bus"/>
     <s:alias val="$mux-bus"/>
     <s:alias val="$_MUX_-bus"/>
@@ -92,7 +92,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 4:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux4" transform="translate(50,50)" s:width="44" s:height="152">
+  <g class="rtl-mux" s:type="binary-mux4" transform="translate(1000,980)" s:width="44" s:height="152">
     <s:alias val="$binary_mux4"/>
     <path d="M0,0 L44,16 L44,136 L0,152 Z" class="$cell_id"/>
     <text x="22" y="26" class="nodelabel $cell_id">4:1</text>
@@ -110,7 +110,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 4:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux4-bus" transform="translate(50,50)" s:width="50" s:height="152">
+  <g class="rtl-mux" s:type="binary-mux4-bus" transform="translate(1140,980)" s:width="50" s:height="152">
     <s:alias val="$binary_mux4-bus"/>
     <path d="M0,0 L44,16 L44,136 L0,152 Z" class="$cell_id"/>
     <path d="M4,2 L4,0 L47,16 L47,136 L4,152 L4,150" class="$cell_id"/>
@@ -130,7 +130,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 8:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux8" transform="translate(50,50)" s:width="44" s:height="248">
+  <g class="rtl-mux" s:type="binary-mux8" transform="translate(1000,650)" s:width="44" s:height="248">
     <s:alias val="$binary_mux8"/>
     <path d="M0,0 L44,16 L44,232 L0,248 Z" class="$cell_id"/>
     <text x="22" y="26" class="nodelabel $cell_id">8:1</text>
@@ -156,7 +156,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 8:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux8-bus" transform="translate(50,50)" s:width="50" s:height="248">
+  <g class="rtl-mux" s:type="binary-mux8-bus" transform="translate(1140,650)" s:width="50" s:height="248">
     <s:alias val="$binary_mux8-bus"/>
     <path d="M0,0 L44,16 L44,232 L0,248 Z" class="$cell_id"/>
     <path d="M4,2 L4,0 L47,16 L47,232 L4,248 L4,246" class="$cell_id"/>
@@ -184,7 +184,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 16:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux16" transform="translate(50,50)" s:width="44" s:height="440">
+  <g class="rtl-mux" s:type="binary-mux16" transform="translate(1000,130)" s:width="44" s:height="440">
     <s:alias val="$binary_mux16"/>
     <path d="M0,0 L44,16 L44,424 L0,440 Z" class="$cell_id"/>
     <text x="22" y="26" class="nodelabel $cell_id">16:1</text>
@@ -226,7 +226,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 16:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux16-bus" transform="translate(50,50)" s:width="50" s:height="440">
+  <g class="rtl-mux" s:type="binary-mux16-bus" transform="translate(1140,130)" s:width="50" s:height="440">
     <s:alias val="$binary_mux16-bus"/>
     <path d="M0,0 L44,16 L44,424 L0,440 Z" class="$cell_id"/>
     <path d="M4,2 L4,0 L47,16 L47,424 L4,440 L4,438" class="$cell_id"/>
@@ -270,7 +270,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 32:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux32" transform="translate(50,50)" s:width="44" s:height="824">
+  <g class="rtl-mux" s:type="binary-mux32" transform="translate(1290,130)" s:width="44" s:height="824">
     <s:alias val="$binary_mux32"/>
     <path d="M0,0 L44,16 L44,808 L0,824 Z" class="$cell_id"/>
     <text x="22" y="26" class="nodelabel $cell_id">32:1</text>
@@ -344,7 +344,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- Binary 32:1 mux: I0 is selected by S=0. -->
-  <g class="rtl-mux" s:type="binary-mux32-bus" transform="translate(50,50)" s:width="50" s:height="824">
+  <g class="rtl-mux" s:type="binary-mux32-bus" transform="translate(1430,130)" s:width="50" s:height="824">
     <s:alias val="$binary_mux32-bus"/>
     <path d="M0,0 L44,16 L44,808 L0,824 Z" class="$cell_id"/>
     <path d="M4,2 L4,0 L47,16 L47,808 L4,824 L4,822" class="$cell_id"/>
@@ -420,7 +420,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- and -->
-  <g class="rtl-logic" s:type="and" transform="translate(150,50)" s:width="30" s:height="25">
+  <g class="rtl-logic" s:type="and" transform="translate(60,130)" s:width="30" s:height="25">
     <s:alias val="$and"/>
     <s:alias val="$logic_and"/>
     <s:alias val="$_AND_"/>
@@ -432,7 +432,7 @@ svg.rtl-schematic {
     <g s:x="0" s:y="20" s:pid="B"/>
     <g s:x="30" s:y="12.5" s:pid="Y"/>
   </g>
-  <g class="rtl-logic" s:type="nand" transform="translate(150,100)" s:width="30" s:height="25">
+  <g class="rtl-logic" s:type="nand" transform="translate(210,130)" s:width="30" s:height="25">
     <s:alias val="$nand"/>
     <s:alias val="$logic_nand"/>
     <s:alias val="$_NAND_"/>
@@ -444,7 +444,7 @@ svg.rtl-schematic {
     <g s:x="0" s:y="20" s:pid="B"/>
     <g s:x="36" s:y="12.5" s:pid="Y"/>
   </g>
-  <g class="rtl-logic" s:type="andnot" transform="translate(200,50)" s:width="30" s:height="25">
+  <g class="rtl-logic" s:type="andnot" transform="translate(360,130)" s:width="30" s:height="25">
     <s:alias val="$_ANDNOT_"/>
 
     <path d="M0,0 L0,25 L15,25 A15 12.5 0 0 0 15,0 Z" class="$cell_id"/>
@@ -457,7 +457,7 @@ svg.rtl-schematic {
   </g>
 
   <!-- or -->
-  <g class="rtl-logic" s:type="or" transform="translate(250,50)" s:width="30" s:height="25">
+  <g class="rtl-logic" s:type="or" transform="translate(510,130)" s:width="30" s:height="25">
     <s:alias val="$or"/>
     <s:alias val="$logic_or"/>
     <s:alias val="$_OR_"/>
@@ -470,7 +470,7 @@ svg.rtl-schematic {
     <g s:x="2" s:y="20" s:pid="B"/>
     <g s:x="30" s:y="12.5" s:pid="Y"/>
   </g>
-  <g class="rtl-logic" s:type="reduce_nor" transform="translate(250, 100)" s:width="33" s:height="25">
+  <g class="rtl-logic" s:type="reduce_nor" transform="translate(660,130)" s:width="33" s:height="25">
     <s:alias val="$nor"/>
     <s:alias val="$reduce_nor"/>
     <s:alias val="$_NOR_"/>
@@ -483,7 +483,7 @@ svg.rtl-schematic {
     <g s:x="2" s:y="20" s:pid="B"/>
     <g s:x="36" s:y="12.5" s:pid="Y"/>
   </g>
-  <g class="rtl-logic" s:type="ornot" transform="translate(300,50)" s:width="30" s:height="25">
+  <g class="rtl-logic" s:type="ornot" transform="translate(810,130)" s:width="30" s:height="25">
     <s:alias val="$_ORNOT_"/>
 
     <path d="M0,0 A30 25 0 0 1 0,25 A30 25 0 0 0 30,12.5 A30 25 0 0 0 0,0" class="$cell_id"/>
@@ -496,7 +496,7 @@ svg.rtl-schematic {
   </g>
 
   <!--xor -->
-  <g class="rtl-logic" s:type="reduce_xor" transform="translate(350, 50)" s:width="33" s:height="25">
+  <g class="rtl-logic" s:type="reduce_xor" transform="translate(60,220)" s:width="33" s:height="25">
     <s:alias val="$xor"/>
     <s:alias val="$reduce_xor"/>
     <s:alias val="$_XOR_"/>
@@ -509,7 +509,7 @@ svg.rtl-schematic {
     <g s:x="33" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="reduce_nxor" transform="translate(350, 100)" s:width="33" s:height="25">
+  <g class="rtl-logic" s:type="reduce_nxor" transform="translate(210,220)" s:width="33" s:height="25">
     <s:alias val="$xnor"/>
     <s:alias val="$reduce_xnor"/>
     <s:alias val="$_XNOR_"/>
@@ -523,7 +523,7 @@ svg.rtl-schematic {
     <g s:x="38" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="tribuf" transform="translate(550, 50)" s:width="15" s:height="30">
+  <g class="rtl-logic" s:type="tribuf" transform="translate(360,220)" s:width="15" s:height="30">
     <s:alias val="$tribuf"/>
     <s:alias val="$_TRIBUF_"/>
 
@@ -542,7 +542,7 @@ svg.rtl-schematic {
   </g>
 
   <!--buffer -->
-  <g class="rtl-logic" s:type="not" transform="translate(450,100)" s:width="30" s:height="20">
+  <g class="rtl-logic" s:type="not" transform="translate(510,220)" s:width="30" s:height="20">
     <s:alias val="$_NOT_"/>
     <s:alias val="$not"/>
     <s:alias val="$logic_not"/>
@@ -553,7 +553,7 @@ svg.rtl-schematic {
     <g s:x="-1" s:y="10" s:pid="A"/>
     <g s:x="27" s:y="10" s:pid="Y"/>
   </g>
-  <g class="rtl-logic" s:type="buf" transform="translate(450,50)" s:width="30" s:height="20">
+  <g class="rtl-logic" s:type="buf" transform="translate(660,220)" s:width="30" s:height="20">
     <s:alias val="$_BUF_"/>
 
     <path d="M0,0 L0,20 L20,10 Z" class="$cell_id"/>
@@ -564,7 +564,7 @@ svg.rtl-schematic {
     <!-- <path d="M 25,10 L 20,10"/> -->
   </g>
 
-  <g class="rtl-logic" s:type="add" transform="translate(50, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="add" transform="translate(810,220)" s:width="25" s:height="25">
     <s:alias val="$add"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -576,7 +576,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="pos" transform="translate(100, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="pos" transform="translate(60,310)" s:width="25" s:height="25">
     <s:alias val="$pos"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -587,7 +587,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="sub" transform="translate(150,150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="sub" transform="translate(210,310)" s:width="25" s:height="25">
     <s:alias val="$sub"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -598,7 +598,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="neg" transform="translate(200,150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="neg" transform="translate(360,310)" s:width="25" s:height="25">
     <s:alias val="$neg"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -608,7 +608,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="eq" transform="translate(250,150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="eq" transform="translate(510,310)" s:width="25" s:height="25">
     <s:alias val="$eq"/>
     <s:alias val="$eqx"/>
 
@@ -621,7 +621,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="mul" transform="translate(300, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="mul" transform="translate(660,310)" s:width="25" s:height="25">
     <s:alias val="$mul"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -633,7 +633,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="div" transform="translate(350, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="div" transform="translate(810,310)" s:width="25" s:height="25">
     <s:alias val="$div"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -644,7 +644,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="mod" transform="translate(400, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="mod" transform="translate(60,400)" s:width="25" s:height="25">
     <s:alias val="$mod"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -657,7 +657,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="pow" transform="translate(450, 150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="pow" transform="translate(210,400)" s:width="25" s:height="25">
     <s:alias val="$pow"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -669,7 +669,7 @@ svg.rtl-schematic {
     <g s:x="26" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="ne" transform="translate(500,150)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="ne" transform="translate(360,400)" s:width="25" s:height="25">
     <s:alias val="$ne"/>
     <s:alias val="$nex"/>
 
@@ -683,7 +683,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="lt" transform="translate(50,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="lt" transform="translate(510,400)" s:width="25" s:height="25">
     <s:alias val="$lt"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -695,7 +695,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="le" transform="translate(100,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="le" transform="translate(660,400)" s:width="25" s:height="25">
     <s:alias val="$le"/>
 
     <circle r="12.5" cx="12.5" cy="12.5" class="$cell_id"/>
@@ -708,7 +708,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="ge" transform="translate(150,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="ge" transform="translate(810,400)" s:width="25" s:height="25">
     <s:alias val="$ge"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -721,7 +721,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="gt" transform="translate(200,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="gt" transform="translate(60,490)" s:width="25" s:height="25">
     <s:alias val="$gt"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -733,7 +733,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="shr" transform="translate(250,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="shr" transform="translate(210,490)" s:width="25" s:height="25">
     <s:alias val="$shr"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -747,7 +747,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="shl" transform="translate(300,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="shl" transform="translate(360,490)" s:width="25" s:height="25">
     <s:alias val="$shl"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -761,7 +761,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="sshr" transform="translate(350,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="sshr" transform="translate(510,490)" s:width="25" s:height="25">
     <s:alias val="$sshr"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -777,7 +777,7 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-logic" s:type="sshl" transform="translate(400,200)" s:width="25" s:height="25">
+  <g class="rtl-logic" s:type="sshl" transform="translate(660,490)" s:width="25" s:height="25">
     <s:alias val="$sshl"/>
 
     <circle r="12" cx="12" cy="12" class="$cell_id"/>
@@ -793,14 +793,14 @@ svg.rtl-schematic {
     <g s:x="25" s:y="12.5" s:pid="Y"/>
   </g>
 
-  <g class="rtl-port" s:type="inputExt" transform="translate(50,250)" s:width="30" s:height="20">
+  <g class="rtl-port" s:type="inputExt" transform="translate(60,940)" s:width="30" s:height="20">
     <text x="15" y="-4" class="nodelabel $cell_id" s:attribute="ref">input</text>
     <s:alias val="$_inputExt_"/>
     <path d="M0,0 L0,20 L15,20 L30,10 L15,0 Z" class="$cell_id"/>
     <g s:x="30" s:y="10" s:pid="Y"/>
   </g>
 
-  <g class="rtl-neutral" s:type="constant" transform="translate(150,250)" s:width="30" s:height="20">
+  <g class="rtl-neutral" s:type="constant" transform="translate(210,940)" s:width="30" s:height="20">
     <text x="15" y="-4" class="nodelabel $cell_id" s:attribute="ref">constant</text>
 
     <s:alias val="$_constant_"/>
@@ -809,7 +809,7 @@ svg.rtl-schematic {
     <g s:x="31" s:y="10" s:pid="Y"/>
   </g>
 
-  <g class="rtl-port" s:type="outputExt" transform="translate(250,250)" s:width="30" s:height="20">
+  <g class="rtl-port" s:type="outputExt" transform="translate(360,940)" s:width="30" s:height="20">
     <text x="15" y="-4" class="nodelabel $cell_id" s:attribute="ref">output</text>
     <s:alias val="$_outputExt_"/>
     <path d="M30,0 L30,20 L15,20 L0,10 L15,0 Z" class="$cell_id"/>
@@ -817,7 +817,7 @@ svg.rtl-schematic {
     <g s:x="0" s:y="10" s:pid="A"/>
   </g>
 
-  <g class="rtl-port rtl-selector" s:type="split" transform="translate(350,250)" s:width="5" s:height="40">
+  <g class="rtl-port rtl-selector" s:type="split" transform="translate(510,940)" s:width="5" s:height="40">
     <rect width="5" height="40" class="splitjoinBody" s:generic="body"/>
     <s:alias val="$_split_"/>
 
@@ -830,7 +830,7 @@ svg.rtl-schematic {
     </g>
   </g>
 
-  <g class="rtl-port rtl-selector" s:type="join" transform="translate(450,250)" s:width="4" s:height="40">
+  <g class="rtl-port rtl-selector" s:type="join" transform="translate(660,940)" s:width="4" s:height="40">
     <rect width="5" height="40" class="splitjoinBody" s:generic="body"/>
     <s:alias val="$_join_"/>
     <g s:x="5" s:y="20"  s:pid="out"/>
@@ -842,7 +842,7 @@ svg.rtl-schematic {
     </g>
   </g>
 
-  <g class="rtl-register" s:type="dff" transform="translate(50,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dff" transform="translate(60,700)" s:width="30" s:height="40">
     <s:alias val="$dff"/>
     <s:alias val="$_DFF_"/>
     <s:alias val="$_DFF_P_"/>
@@ -870,7 +870,7 @@ svg.rtl-schematic {
     <g s:x="15" s:y="40" s:pid="SRST"/>
   </g>
 
-<g class="rtl-register" s:type="adff" transform="translate(350,150)" s:width="30" s:height="50">
+<g class="rtl-register" s:type="adff" transform="translate(210,700)" s:width="30" s:height="50">
   <!-- Aliases for async reset flops -->
   <s:alias val="$adff"/>
   <s:alias val="$_DFF_PN0_"/>
@@ -894,7 +894,7 @@ svg.rtl-schematic {
   <g s:x="0"  s:y="40" s:pid="C"/>  <!-- Clock (left, bottom) -->
 </g>
 
-  <g class="rtl-register" s:type="dff-bus" transform="translate(100,300)" s:width="34" s:height="44">
+  <g class="rtl-register" s:type="dff-bus" transform="translate(360,700)" s:width="34" s:height="44">
     <s:alias val="$dff-bus"/>
     <s:alias val="$_DFF_-bus"/>
     <s:alias val="$_DFF_P_-bus"/>
@@ -922,7 +922,7 @@ svg.rtl-schematic {
     <g s:x="17" s:y="44" s:pid="SRST"/>
   </g>
 
-  <g class="rtl-register" s:type="dffn" transform="translate(150,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dffn" transform="translate(510,700)" s:width="30" s:height="40">
     <s:alias val="$dffn"/>
     <s:alias val="$_DFF_N_"/>
 
@@ -936,7 +936,7 @@ svg.rtl-schematic {
     <g s:x="0" s:y="10" s:pid="D"/>
   </g>
 
-  <g class="rtl-register" s:type="dffn-bus" transform="translate(200,300)" s:width="34" s:height="44">
+  <g class="rtl-register" s:type="dffn-bus" transform="translate(660,700)" s:width="34" s:height="44">
     <s:alias val="$dffn-bus"/>
     <s:alias val="$_DFF_N_-bus"/>
 
@@ -952,7 +952,7 @@ svg.rtl-schematic {
     <g s:x="0" s:y="10" s:pid="D"/>
   </g>
 
-  <g class="rtl-register" s:type="dlatch" transform="translate(250,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dlatch" transform="translate(810,700)" s:width="30" s:height="40">
     <s:alias val="$dlatch"/>
     <s:alias val="$_DLATCH_"/>
     <s:alias val="adlatch"/>
@@ -968,7 +968,7 @@ svg.rtl-schematic {
     <g s:x="15" s:y="40" s:pid="ARST"/>
   </g>
 
-  <g class="rtl-register" s:type="dlatch-bus" transform="translate(300,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dlatch-bus" transform="translate(60,810)" s:width="30" s:height="40">
     <s:alias val="$dlatch-bus"/>
     <s:alias val="$_DLATCH_-bus"/>
     <s:alias val="adlatch-bus"/>
@@ -986,7 +986,7 @@ svg.rtl-schematic {
     <g s:x="17" s:y="44" s:pid="ARST"/>
   </g>
 
-  <g class="rtl-register" s:type="dlatchn" transform="translate(350,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dlatchn" transform="translate(210,810)" s:width="30" s:height="40">
     <s:alias val="$dlatchn"/>
     <s:alias val="$_DLATCH_N_"/>
 
@@ -999,7 +999,7 @@ svg.rtl-schematic {
     <g s:x="-1" s:y="30" s:pid="EN"/>
   </g>
 
-  <g class="rtl-register" s:type="dlatchn-bus" transform="translate(400,300)" s:width="30" s:height="40">
+  <g class="rtl-register" s:type="dlatchn-bus" transform="translate(360,810)" s:width="30" s:height="40">
     <s:alias val="$dlatchn-bus"/>
     <s:alias val="$_DLATCH_N_-bus"/>
 
@@ -1014,7 +1014,7 @@ svg.rtl-schematic {
     <g s:x="-1" s:y="30" s:pid="EN"/>
   </g>
 
-  <g class="rtl-logic" s:type="_AOI3_" transform="translate(50, 400)" s:width="66" s:height="40">
+  <g class="rtl-logic" s:type="_AOI3_" transform="translate(810,490)" s:width="66" s:height="40">
     <s:alias val="$_AOI3_"/>
 
     <path d="M0,0 L0,25 L15,25 A15 12.5 0 0 0 15,0 Z" class="$cell_id"/>
@@ -1031,7 +1031,7 @@ svg.rtl-schematic {
     <!-- <path d="M 70,25.5 L 66,25.5"/> -->
   </g>
 
-  <g class="rtl-logic" s:type="_OAI3_" transform="translate(150, 400)" s:width="66" s:height="40">
+  <g class="rtl-logic" s:type="_OAI3_" transform="translate(60,580)" s:width="66" s:height="40">
     <s:alias val="$_OAI3_"/>
 
     <path d="M30,13 L30,38 L45,38 A15 12.5 0 0 0 45,13 Z" class="$cell_id"/>
@@ -1051,7 +1051,7 @@ svg.rtl-schematic {
 
   <!-- AOI4 -->
 
-  <g class="rtl-logic" s:type="_AOI4_" transform="translate(250, 400)" s:width="66" s:height="40">
+  <g class="rtl-logic" s:type="_AOI4_" transform="translate(210,580)" s:width="66" s:height="40">
     <s:alias val="$_AOI4_"/>
 
     <path d="M0,0 L0,25 L15,25 A15 12.5 0 0 0 15,0 Z" class="$cell_id"/>
@@ -1072,7 +1072,7 @@ svg.rtl-schematic {
 
   <!-- OAI4 -->
 
-  <g class="rtl-logic" s:type="_OAI4_" transform="translate(350, 400)" s:width="66" s:height="40">
+  <g class="rtl-logic" s:type="_OAI4_" transform="translate(360,580)" s:width="66" s:height="40">
     <s:alias val="$_OAI4_"/>
 
     <path d="M30,13 L30,38 L45,38 A15 12.5 0 0 0 45,13 Z" class="$cell_id"/>
@@ -1092,7 +1092,78 @@ svg.rtl-schematic {
     <!-- <path d="M 70,25.5 L 66,25.5"/> -->
   </g>
 
-  <g class="rtl-neutral" s:type="generic" transform="translate(550,250)" s:width="30" s:height="40">
+  <!-- Memory port cells remain separate and retain all original Yosys pins.
+       EN on writes/initializers is a per-data-bit write mask. -->
+  <g class="rtl-register rtl-memory" s:type="memory-read" transform="translate(60,1080)" s:width="120" s:height="124">
+    <s:alias val="$memrd"/>
+    <rect width="120" height="124" rx="3" class="$cell_id"/>
+    <text x="60" y="20" class="nodelabel $cell_id">MEM READ</text>
+    <text x="8" y="51" class="$cell_id">ADDR</text>
+    <g s:x="0" s:y="48" s:pid="ADDR" s:position="top"/>
+    <text x="8" y="75" class="$cell_id">EN</text>
+    <g s:x="0" s:y="72" s:pid="EN" s:position="top"/>
+    <text x="8" y="99" class="$cell_id">CLK</text>
+    <g s:x="0" s:y="96" s:pid="CLK" s:position="top"/>
+    <text x="112" y="57" text-anchor="end" class="$cell_id">DATA</text>
+    <g s:x="120" s:y="62" s:pid="DATA" s:position="bottom"/>
+  </g>
+
+  <g class="rtl-register rtl-memory" s:type="memory-read-v2" transform="translate(235,1080)" s:width="120" s:height="172">
+    <s:alias val="$memrd_v2"/>
+    <rect width="120" height="172" rx="3" class="$cell_id"/>
+    <text x="60" y="20" class="nodelabel $cell_id">MEM READ</text>
+    <text x="8" y="51" class="$cell_id">ADDR</text>
+    <g s:x="0" s:y="48" s:pid="ADDR" s:position="top"/>
+    <text x="8" y="75" class="$cell_id">EN</text>
+    <g s:x="0" s:y="72" s:pid="EN" s:position="top"/>
+    <text x="8" y="99" class="$cell_id">CLK</text>
+    <g s:x="0" s:y="96" s:pid="CLK" s:position="top"/>
+    <text x="8" y="123" class="$cell_id">ARST</text>
+    <g s:x="0" s:y="120" s:pid="ARST" s:position="top"/>
+    <text x="8" y="147" class="$cell_id">SRST</text>
+    <g s:x="0" s:y="144" s:pid="SRST" s:position="top"/>
+    <text x="112" y="81" text-anchor="end" class="$cell_id">DATA</text>
+    <g s:x="120" s:y="86" s:pid="DATA" s:position="bottom"/>
+  </g>
+
+  <g class="rtl-register rtl-memory" s:type="memory-write" transform="translate(410,1080)" s:width="120" s:height="148">
+    <s:alias val="$memwr"/>
+    <s:alias val="$memwr_v2"/>
+    <rect width="120" height="148" rx="3" class="$cell_id"/>
+    <text x="60" y="20" class="nodelabel $cell_id">MEM WRITE</text>
+    <text x="8" y="51" class="$cell_id">ADDR</text>
+    <g s:x="0" s:y="48" s:pid="ADDR" s:position="top"/>
+    <text x="8" y="75" class="$cell_id">DATA</text>
+    <g s:x="0" s:y="72" s:pid="DATA" s:position="top"/>
+    <text x="8" y="99" class="$cell_id">MASK</text>
+    <g s:x="0" s:y="96" s:pid="EN" s:position="top"/>
+    <text x="8" y="123" class="$cell_id">CLK</text>
+    <g s:x="0" s:y="120" s:pid="CLK" s:position="top"/>
+  </g>
+
+  <g class="rtl-register rtl-memory" s:type="memory-init" transform="translate(585,1080)" s:width="120" s:height="100">
+    <s:alias val="$meminit"/>
+    <rect width="120" height="100" rx="3" class="$cell_id"/>
+    <text x="60" y="20" class="nodelabel $cell_id">MEM INIT</text>
+    <text x="8" y="51" class="$cell_id">ADDR</text>
+    <g s:x="0" s:y="48" s:pid="ADDR" s:position="top"/>
+    <text x="8" y="75" class="$cell_id">DATA</text>
+    <g s:x="0" s:y="72" s:pid="DATA" s:position="top"/>
+  </g>
+
+  <g class="rtl-register rtl-memory" s:type="memory-init-v2" transform="translate(760,1080)" s:width="120" s:height="124">
+    <s:alias val="$meminit_v2"/>
+    <rect width="120" height="124" rx="3" class="$cell_id"/>
+    <text x="60" y="20" class="nodelabel $cell_id">MEM INIT</text>
+    <text x="8" y="51" class="$cell_id">ADDR</text>
+    <g s:x="0" s:y="48" s:pid="ADDR" s:position="top"/>
+    <text x="8" y="75" class="$cell_id">DATA</text>
+    <g s:x="0" s:y="72" s:pid="DATA" s:position="top"/>
+    <text x="8" y="99" class="$cell_id">MASK</text>
+    <g s:x="0" s:y="96" s:pid="EN" s:position="top"/>
+  </g>
+
+  <g class="rtl-neutral" s:type="generic" transform="translate(810,940)" s:width="30" s:height="40">
 
     <text x="15" y="-4" class="nodelabel $cell_id" s:attribute="ref">generic</text>
     <rect width="30" height="40" s:generic="body" class="$cell_id"/>
@@ -1111,4 +1182,74 @@ svg.rtl-schematic {
     </g>
   </g>
 
+  <!-- Standalone gallery labels are omitted by netlistsvg when it renders a circuit. -->
+  <text data-skin-gallery="heading" x="40" y="40" style="font-size:22px">Digital symbol library</text>
+  <text data-skin-gallery="heading" x="40" y="90" style="font-size:16px">Logic and arithmetic</text>
+  <text data-skin-gallery="heading" x="40" y="660" style="font-size:16px">Registers and latches</text>
+  <text data-skin-gallery="heading" x="40" y="900" style="font-size:16px">I/O and routing</text>
+  <text data-skin-gallery="heading" x="40" y="1040" style="font-size:16px">Memory ports</text>
+  <text data-skin-gallery="heading" x="1000" y="90" style="font-size:16px">Binary selection</text>
+  <text data-skin-gallery="caption" x="1010" y="1188" text-anchor="middle">mux</text>
+  <text data-skin-gallery="caption" x="1152" y="1188" text-anchor="middle">mux-bus</text>
+  <text data-skin-gallery="caption" x="1022" y="958" text-anchor="middle">binary-mux4</text>
+  <text data-skin-gallery="caption" x="1165" y="958" text-anchor="middle">binary-mux4-bus</text>
+  <text data-skin-gallery="caption" x="1022" y="628" text-anchor="middle">binary-mux8</text>
+  <text data-skin-gallery="caption" x="1165" y="628" text-anchor="middle">binary-mux8-bus</text>
+  <text data-skin-gallery="caption" x="1022" y="108" text-anchor="middle">binary-mux16</text>
+  <text data-skin-gallery="caption" x="1165" y="108" text-anchor="middle">binary-mux16-bus</text>
+  <text data-skin-gallery="caption" x="1312" y="108" text-anchor="middle">binary-mux32</text>
+  <text data-skin-gallery="caption" x="1455" y="108" text-anchor="middle">binary-mux32-bus</text>
+  <text data-skin-gallery="caption" x="75" y="108" text-anchor="middle">and</text>
+  <text data-skin-gallery="caption" x="225" y="108" text-anchor="middle">nand</text>
+  <text data-skin-gallery="caption" x="375" y="108" text-anchor="middle">andnot</text>
+  <text data-skin-gallery="caption" x="525" y="108" text-anchor="middle">or</text>
+  <text data-skin-gallery="caption" x="676.5" y="108" text-anchor="middle">reduce_nor</text>
+  <text data-skin-gallery="caption" x="825" y="108" text-anchor="middle">ornot</text>
+  <text data-skin-gallery="caption" x="76.5" y="198" text-anchor="middle">reduce_xor</text>
+  <text data-skin-gallery="caption" x="226.5" y="198" text-anchor="middle">reduce_nxor</text>
+  <text data-skin-gallery="caption" x="367.5" y="198" text-anchor="middle">tribuf</text>
+  <text data-skin-gallery="caption" x="525" y="198" text-anchor="middle">not</text>
+  <text data-skin-gallery="caption" x="675" y="198" text-anchor="middle">buf</text>
+  <text data-skin-gallery="caption" x="822.5" y="198" text-anchor="middle">add</text>
+  <text data-skin-gallery="caption" x="72.5" y="288" text-anchor="middle">pos</text>
+  <text data-skin-gallery="caption" x="222.5" y="288" text-anchor="middle">sub</text>
+  <text data-skin-gallery="caption" x="372.5" y="288" text-anchor="middle">neg</text>
+  <text data-skin-gallery="caption" x="522.5" y="288" text-anchor="middle">eq</text>
+  <text data-skin-gallery="caption" x="672.5" y="288" text-anchor="middle">mul</text>
+  <text data-skin-gallery="caption" x="822.5" y="288" text-anchor="middle">div</text>
+  <text data-skin-gallery="caption" x="72.5" y="378" text-anchor="middle">mod</text>
+  <text data-skin-gallery="caption" x="222.5" y="378" text-anchor="middle">pow</text>
+  <text data-skin-gallery="caption" x="372.5" y="378" text-anchor="middle">ne</text>
+  <text data-skin-gallery="caption" x="522.5" y="378" text-anchor="middle">lt</text>
+  <text data-skin-gallery="caption" x="672.5" y="378" text-anchor="middle">le</text>
+  <text data-skin-gallery="caption" x="822.5" y="378" text-anchor="middle">ge</text>
+  <text data-skin-gallery="caption" x="72.5" y="468" text-anchor="middle">gt</text>
+  <text data-skin-gallery="caption" x="222.5" y="468" text-anchor="middle">shr</text>
+  <text data-skin-gallery="caption" x="372.5" y="468" text-anchor="middle">shl</text>
+  <text data-skin-gallery="caption" x="522.5" y="468" text-anchor="middle">sshr</text>
+  <text data-skin-gallery="caption" x="672.5" y="468" text-anchor="middle">sshl</text>
+  <text data-skin-gallery="caption" x="75" y="918" text-anchor="middle">inputExt</text>
+  <text data-skin-gallery="caption" x="225" y="918" text-anchor="middle">constant</text>
+  <text data-skin-gallery="caption" x="375" y="918" text-anchor="middle">outputExt</text>
+  <text data-skin-gallery="caption" x="512.5" y="918" text-anchor="middle">split</text>
+  <text data-skin-gallery="caption" x="662" y="918" text-anchor="middle">join</text>
+  <text data-skin-gallery="caption" x="75" y="678" text-anchor="middle">dff</text>
+  <text data-skin-gallery="caption" x="225" y="678" text-anchor="middle">adff</text>
+  <text data-skin-gallery="caption" x="377" y="678" text-anchor="middle">dff-bus</text>
+  <text data-skin-gallery="caption" x="525" y="678" text-anchor="middle">dffn</text>
+  <text data-skin-gallery="caption" x="677" y="678" text-anchor="middle">dffn-bus</text>
+  <text data-skin-gallery="caption" x="825" y="678" text-anchor="middle">dlatch</text>
+  <text data-skin-gallery="caption" x="75" y="788" text-anchor="middle">dlatch-bus</text>
+  <text data-skin-gallery="caption" x="225" y="788" text-anchor="middle">dlatchn</text>
+  <text data-skin-gallery="caption" x="375" y="788" text-anchor="middle">dlatchn-bus</text>
+  <text data-skin-gallery="caption" x="843" y="468" text-anchor="middle">_AOI3_</text>
+  <text data-skin-gallery="caption" x="93" y="558" text-anchor="middle">_OAI3_</text>
+  <text data-skin-gallery="caption" x="243" y="558" text-anchor="middle">_AOI4_</text>
+  <text data-skin-gallery="caption" x="393" y="558" text-anchor="middle">_OAI4_</text>
+  <text data-skin-gallery="caption" x="120" y="1058" text-anchor="middle">memory-read</text>
+  <text data-skin-gallery="caption" x="295" y="1058" text-anchor="middle">memory-read-v2</text>
+  <text data-skin-gallery="caption" x="470" y="1058" text-anchor="middle">memory-write</text>
+  <text data-skin-gallery="caption" x="645" y="1058" text-anchor="middle">memory-init</text>
+  <text data-skin-gallery="caption" x="820" y="1058" text-anchor="middle">memory-init-v2</text>
+  <text data-skin-gallery="caption" x="825" y="918" text-anchor="middle">generic</text>
 </svg>

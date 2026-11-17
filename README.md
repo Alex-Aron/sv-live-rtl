@@ -54,6 +54,21 @@ is preserved when a live schematic or expanded module updates.
 - **Stacked Symbols:** Muxes and D flip-flops with multi-bit outputs use the digital library's stacked symbols. Single-bit outputs keep the ordinary symbols, even when a mux has a multi-bit select or concatenated input.
 - **Inline Bus Widths (`/N/`):** A real gap in the wire contains a centered `/4/`, `/8/`, etc. There is no diagonal tick or label above the wire. Placement follows the routed midpoint between terminals and branch junctions, moving to a nearby clear segment when needed. Labels avoid symbols, port text, junctions, other wires, and other width labels. Routes too short or crowded for a safe label retain their thick wire without a label. The local skin reserves extra layout spacing for these indicators.
 
+## Wire spacing and crossings
+
+Set `sv-live-rtl.wireLaneSpacing` in VS Code Settings to adjust parallel wire
+spacing (default **16**, range **6–40**, in SVG units). For example:
+
+```json
+"sv-live-rtl.wireLaneSpacing": 22
+```
+
+Refresh or Reflow the project after changing it; live views apply it on the
+next regeneration. Unconnected crossings use small curved jumps when there is
+room, while connected junctions use larger black dots with contrasting outlines.
+Wires detour around labels where possible; crowded labels receive foreground
+clearance so wires do not obscure the text.
+
 ## Case statements and muxes
 
 The synthesis pipeline tries to recover binary selectors from Yosys's parallel
@@ -133,6 +148,11 @@ reported as unsupported. External black-box declarations remain collapsed.
 
 ## Local symbol library
 
+Memory read, write, and initializer cells (`$memrd`, `$memwr`, `$meminit`, and
+their `_v2` forms) have dedicated symbols. Memory write `EN` is labeled **MASK**:
+Yosys uses one enable bit per data bit, so a 32-bit memory can show a 32-bit mask
+even when the RTL uses one scalar write enable.
+
 `resources/skins/default.svg` is a complete reference copy of the installed
 netlistsvg digital library. The viewer renders with the editable fork
 `resources/skins/dark-digital.svg`, bundled with the extension. Change or add
@@ -149,3 +169,6 @@ checks for the ALU, overlapping priority cases, and sparse cases with defaults.
 Project tests exercise parameterized hierarchies, shared includes, cache reuse,
 interface invalidation, failure recovery, and selective updates of expanded SVGs.
 Launch with **F5** to inspect rendering in the VS Code Webview.
+
+See [AGENTS.md](AGENTS.md) for contributor context and [issues.md](issues.md) for
+known issues, current limitations, and future work.

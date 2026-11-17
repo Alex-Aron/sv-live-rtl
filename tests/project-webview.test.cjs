@@ -63,7 +63,7 @@ function harness(saved = {}) {
     window: { addEventListener: (type, fn) => { listeners[type] = fn; } }
   };
   vm.runInNewContext(fs.readFileSync('resources/project-viewer.js', 'utf8'), context);
-  return { route: context.routeModuleBridges, elements, doc, sent, state: () => state, receive: data => listeners.message({ data }) };
+  return { route: context.routeModuleBridges, crossings: context.decorateModuleBridgeCrossings, elements, doc, sent, state: () => state, receive: data => listeners.message({ data }) };
 }
 function model(key, svg, ports = []) { return { key, name: key, svg, ports, width: 500, height: 300, instances: [], blackbox: false }; }
 const leaf = text => model('leaf', `<svg width="120" height="80" viewBox="0 0 120 80"><g id="cell_a" transform="translate(5,20)"><text>${text}</text></g><g id="cell_y" transform="translate(80,20)"/></svg>`, [
@@ -213,7 +213,7 @@ test('expanded bridges from real project layouts keep clock/reset and data runs 
         const cell = [...model.svg.matchAll(/<g\b[^>]*>/g)].find(m => m[0].includes(`id="cell_${port.label}"`))[0];
         const t = cell.match(/translate\(([^,]+),([^)]*)\)/);
         return { name: port.name, width: port.width, input: port.direction === 'input', fromY: port.y,
-          x: dx + (+t[1] + (port.direction === 'input' ? 0 : 30)) * scale, y: dy + (+t[2] + 10) * scale };
+          x: dx + (+t[1] + (port.direction === 'input' ? 0 : 30)) * scale, y: dy + (+t[2] + (port.direction === 'input' ? 10 : 30)) * scale };
       });
       assertNoSharedRuns(route(connections, model.width, model.height, model.gutter));
     }
@@ -248,4 +248,60 @@ test('instance-specific layout scenes expand one instance while keeping its sibl
   h.receive({ ...snapshot([{ ...sceneTop, svg: top.svg }]), sceneKeys: ['top', 'leaf', '@view-top'], viewRoot: '@view-top', selected: 'top' });
   assert.equal(h.elements['project-error'].textContent, '');
   for (const frame of h.doc.querySelectorAll('.rtl-module-instance')) assert.equal(frame.querySelector('.project-toggle').getAttribute('aria-expanded'), 'false');
+});
+
+test('boundary lane pitch is adjustable and expanded labels have a clear column', () => {
+  const { route } = harness();
+  const labelClearance = 140;
+  const connections = Array.from({ length: 4 }, (_, i) => ({
+    name: 'input_' + i, input: true, width: 8, fromY: 100 + i * 30, x: 400, y: 270 + i * 30
+  }));
+  for (const spacing of [16, 24]) {
+    const gutter = labelClearance + 48 + (connections.length + 1) * spacing;
+    const routed = route(connections, 900, 500, gutter, spacing, labelClearance);
+    assertNoSharedRuns(routed);
+    const lanes = routed.map(r => r.points[1][0]).sort((a, b) => a - b);
+    for (let i = 1; i < lanes.length; i++) assert.equal(lanes[i] - lanes[i - 1], spacing);
+    assert.ok(lanes.every(x => x > labelClearance + 16));
+    for (const r of routed) assert.equal(r.points.length, 4);
+  }
+});
+
+test('unconnected bridge crossings use raised arcs with gaps and retain route geometry', () => {
+  const { crossings } = harness();
+  const horizontal = { name: 'data', width: 8, points: [[0, 50], [120, 50]], d: 'M0,50 L120,50' };
+  const vertical = { name: 'clk', width: 1, points: [[60, 0], [60, 100]], d: 'M60,0 L60,100' };
+  const decorated = crossings([horizontal, vertical]);
+  assert.equal(decorated.jumps.length, 1);
+  assert.equal(decorated.jumps[0].clearanceD, 'M56,50 A4,4 0 0 1 64,50');
+  assert.equal(decorated.jumps[0].d, 'M52,50 L56,50 A4,4 0 0 1 64,50 L68,50');
+  assert.equal(decorated.routes[0].d, 'M0,50 L56,50 M64,50 L120,50');
+  assert.equal(decorated.routes[0].points, horizontal.points);
+  assert.equal(decorated.routes[1].points, vertical.points);
+  assert.equal(crossings([horizontal, { ...vertical, points: [[60, 50], [60, 100]] }]).jumps.length, 0);
+  assert.equal(crossings([horizontal, { ...vertical, points: [[3, 0], [3, 100]] }]).jumps.length, 0);
+  assert.equal(crossings([horizontal, vertical, { name: 'junction', points: [[60, 50], [90, 90]] }]).jumps.length, 0);
+});
+
+test('dense bridge crossing shoulders stay out of neighboring arc interiors', () => {
+  const { crossings } = harness();
+  const routes = [{ name: 'data', width: 8, points: [[0, 50], [120, 50]] },
+    ...[40, 46].map((x, i) => ({ name: 'p' + i, width: 1, points: [[x, 0], [x, 100]] }))];
+  const { jumps } = crossings(routes);
+  assert.equal(jumps.length, 2);
+  assert.match(jumps[0].d, /A2.5,2.5 0 0 1 42.5,50 L43.5,50$/);
+  assert.match(jumps[1].d, /^M42.5,50 L43.5,50 A2.5,2.5/);
+});
+
+test('expanded output bridges read their shifted glyph pin offset', () => {
+  const h = harness({ expanded: ['top/one'] });
+  const child = leaf('XOR');
+  child.svg = child.svg.replace('<g id="cell_y" transform="translate(80,20)"/>', '<g id="cell_y" transform="translate(80,20)"><g s:x="0" s:y="30" s:pid="A"/></g>');
+  h.receive(snapshot([top, child]));
+  const frame = h.doc.querySelector('.rtl-module-instance');
+  const wire = frame.querySelectorAll('.project-bridge').find(el => el.getAttribute('data-port') === 'y');
+  const scale = Math.min(260 / 120, 210 / 80);
+  const expectedY = 60 + (210 - 80 * scale) / 2 + (20 + 30) * scale;
+  const points = [...wire.getAttribute('d').matchAll(/[ML]([\d.-]+),([\d.-]+)/g)].map(m => [+m[1], +m[2]]);
+  assert.ok(points.some(([, y]) => Math.abs(y - expectedY) < 0.01));
 });

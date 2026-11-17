@@ -43,6 +43,13 @@
     "configuration": {
       "title": "SystemVerilog Live RTL Viewer",
       "properties": {
+        "sv-live-rtl.wireLaneSpacing": {
+          "type": "number",
+          "default": 16,
+          "minimum": 6,
+          "maximum": 40,
+          "description": "Target spacing between parallel wires in SVG units. Increase for clearer vertical input lanes. Refresh or Reflow the project, or regenerate the live view, after changing this value."
+        },
         "sv-live-rtl.theme": {
           "type": "string",
           "enum": [

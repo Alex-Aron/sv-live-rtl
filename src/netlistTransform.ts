@@ -1,3 +1,5 @@
+import { postProcessSvgWires } from './svgWires';
+
 /**
  * Transforms Yosys netlist JSON:
  * Renames multi-bit port keys to include their vector ranges, e.g. `count [3:0]` or `in_a [7:4]`.
@@ -398,5 +400,5 @@ export function postProcessSvgBuses(svg: string): string {
       .replace(/\bheight="[^"]*"/, `height="${height}"`)
       .replace('>', ` viewBox="${left} ${top} ${width} ${height}">`);
   });
-  return updated;
+  return postProcessSvgWires(updated);
 }

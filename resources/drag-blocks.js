@@ -157,6 +157,9 @@ window.rtlInitDragBlocks = (() => {
     observer.observe(canvas, { childList: true, subtree: true });
 
     const dragToggle = document.getElementById('toggle-block-drag');
+    if (dragToggle) {
+      canvas.classList.toggle('block-drag-disabled', !dragToggle.checked);
+    }
     dragToggle?.addEventListener('change', () => {
       canvas.classList.toggle('block-drag-disabled', !dragToggle.checked);
     });

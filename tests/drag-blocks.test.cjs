@@ -113,7 +113,7 @@ class MockMutationObserver {
   disconnect() {}
 }
 
-function buildTestDom() {
+function buildTestDom(dragEnabled = false) {
   // Build a canvas with an SVG containing draggable blocks
   const canvas = new Element('div');
   canvas.id = 'canvas';
@@ -153,13 +153,13 @@ function buildTestDom() {
   const resetBtn = new Element('button');
   resetBtn.id = 'reset-blocks';
   const dragToggle = new Element('input');
-  dragToggle.checked = true;
+  dragToggle.checked = dragEnabled;
 
   return { canvas, svg, cellBlock, portBlock, wire, toggleG, toggleRect, resetBtn, dragToggle };
 }
 
-function loadDragBlocks(portsOnly = false) {
-  const dom = buildTestDom();
+function loadDragBlocks(portsOnly = false, dragEnabled = false) {
+  const dom = buildTestDom(dragEnabled);
   const doc = {
     createElementNS: (_ns, tag) => new Element(tag),
     getElementById: id => {
@@ -198,7 +198,7 @@ test('data-orig-transform is recorded on initialization', () => {
 });
 
 test('dragging a block updates its transform via pointer events', () => {
-  const { canvas, cellBlock } = loadDragBlocks();
+  const { canvas, cellBlock } = loadDragBlocks(false, true);
 
   // Simulate pointerdown on the cell block
   const { stopped, prevented } = canvas.fire('pointerdown', {
@@ -231,7 +231,7 @@ test('dragging a block updates its transform via pointer events', () => {
 });
 
 test('clicking .project-toggle does NOT start a block drag', () => {
-  const { canvas, toggleRect } = loadDragBlocks();
+  const { canvas, toggleRect } = loadDragBlocks(false, true);
 
   // pointerdown on the toggle's inner rect — walks up to .project-toggle
   const { stopped } = canvas.fire('pointerdown', {
@@ -247,7 +247,7 @@ test('clicking .project-toggle does NOT start a block drag', () => {
 });
 
 test('clicking #reset-blocks restores data-orig-transform and clears offsets', () => {
-  const { canvas, cellBlock, resetBtn, dragBlocks } = loadDragBlocks();
+  const { canvas, cellBlock, resetBtn, dragBlocks } = loadDragBlocks(false, true);
 
   // Drag the block
   canvas.fire('pointerdown', { button: 0, pointerId: 1, clientX: 100, clientY: 200, target: cellBlock }, true);
@@ -267,7 +267,7 @@ test('clicking #reset-blocks restores data-orig-transform and clears offsets', (
 });
 
 test('right-click (button !== 0) does not start dragging', () => {
-  const { canvas, cellBlock } = loadDragBlocks();
+  const { canvas, cellBlock } = loadDragBlocks(false, true);
 
   const { stopped } = canvas.fire('pointerdown', {
     button: 2,
@@ -281,7 +281,7 @@ test('right-click (button !== 0) does not start dragging', () => {
 });
 
 test('dragging empty canvas background does not intercept (passes to viewport)', () => {
-  const { canvas, wire } = loadDragBlocks();
+  const { canvas, wire } = loadDragBlocks(false, true);
 
   // pointerdown on a wire (not a draggable block)
   const { stopped } = canvas.fire('pointerdown', {
@@ -371,10 +371,12 @@ test('webview HTML includes reset-blocks button and draggable styles', () => {
   assert.ok(html.includes('Drag input/output/constant'), 'viewport hint should mention draggable symbols');
   assert.ok(html.includes('dragBlocksScriptUri'), 'function should accept dragBlocksScriptUri');
   assert.ok(html.includes('rtlInitDragBlocks'), 'inline script should call rtlInitDragBlocks');
+  assert.ok(html.includes('Enable block dragging (experimental)'), 'label should include (experimental)');
+  assert.ok(!html.includes('id="toggle-block-drag" checked'), 'toggle should not be checked by default');
 });
 
 test('a connected wire gains a lead to the moved pin and reset restores it', () => {
-  const { canvas, svg, cellBlock, resetBtn, dragBlocks } = loadDragBlocks();
+  const { canvas, svg, cellBlock, resetBtn, dragBlocks } = loadDragBlocks(false, true);
   const pin = new Element('g');
   pin.setAttribute('s:pid', 'A'); pin.setAttribute('s:x', '0'); pin.setAttribute('s:y', '0');
   cellBlock.append(pin);
@@ -402,7 +404,7 @@ test('a connected wire gains a lead to the moved pin and reset restores it', () 
 
 
 test('live viewer permits only input, output and constant symbols', () => {
-  const { canvas, svg, cellBlock, portBlock, dragBlocks } = loadDragBlocks(true);
+  const { canvas, svg, cellBlock, portBlock, dragBlocks } = loadDragBlocks(true, true);
   const output = new Element('g'); output.setAttribute('s:type', 'outputExt'); output.id = 'cell_y';
   const constant = new Element('g'); constant.setAttribute('s:type', 'constant'); constant.id = 'cell_0';
   const gate = new Element('g'); gate.setAttribute('s:type', 'and'); gate.id = 'cell_gate';
@@ -418,7 +420,7 @@ test('live viewer permits only input, output and constant symbols', () => {
 
 test('drag toggle lets pointerdown pass through and restores dragging', () => {
   const { canvas, cellBlock, dragToggle } = loadDragBlocks();
-  dragToggle.checked = false; dragToggle.fire('change');
+  assert.equal(dragToggle.checked, false);
   assert.ok(canvas.classList.contains('block-drag-disabled'));
   assert.equal(canvas.fire('pointerdown', { button: 0, pointerId: 1, target: cellBlock }, true).stopped, false);
   assert.equal(cellBlock.getAttribute('transform'), 'translate(100, 200)');
@@ -426,4 +428,7 @@ test('drag toggle lets pointerdown pass through and restores dragging', () => {
   assert.ok(!canvas.classList.contains('block-drag-disabled'));
   assert.equal(canvas.fire('pointerdown', { button: 0, pointerId: 2, clientX: 100, clientY: 200, target: cellBlock }, true).stopped, true);
   canvas.fire('pointerup', { pointerId: 2 }, true);
+  dragToggle.checked = false; dragToggle.fire('change');
+  assert.ok(canvas.classList.contains('block-drag-disabled'));
+  assert.equal(canvas.fire('pointerdown', { button: 0, pointerId: 3, target: cellBlock }, true).stopped, false);
 });

@@ -149,7 +149,7 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportSc
     <button id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
     <button id="zoom-reset" title="Actual size (0)">1:1</button>
     <button id="reset-blocks">Reset blocks</button>
-    <label><input type="checkbox" id="toggle-block-drag" checked> Enable block dragging</label>
+    <label><input type="checkbox" id="toggle-block-drag"> Enable block dragging (experimental)</label>
     <span id="viewport-hint">Wheel / pinch: zoom · ${projectViewer ? 'Drag block' : 'Drag input/output/constant'}: move · Drag canvas: pan · F: fit · 0: actual size</span>
   </div>
   <div id="canvas">

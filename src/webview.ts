@@ -12,7 +12,7 @@ export function getViewerPalette(): Palette {
   return sanitizePalette(vscode.workspace.getConfiguration('sv-live-rtl').get('customColors'));
 }
 
-export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportScriptUri?: string): string {
+export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportScriptUri?: string, dragBlocksScriptUri?: string, projectViewer = false): string {
   const colors = sanitizePalette(palette);
   const colorInputs = Object.entries(PALETTE_FIELDS).map(([key, [label]]) =>
     `<label>${label}<input type="color" data-color="${key}" value="${colors[key as keyof Palette]}" aria-label="${label}"></label>`
@@ -95,6 +95,10 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportSc
       background: var(--rtl-background); border-radius: 6px;
       max-width: none; max-height: none; display: block;
     }
+    #canvas:not(.block-drag-disabled) g[data-draggable="true"] { cursor: move; }
+    #canvas .rtl-drag-lead { fill: none; stroke: var(--rtl-wire); stroke-linecap: round; stroke-linejoin: round; }
+    #canvas .rtl-drag-lead.bus { stroke: var(--rtl-bus); stroke-width: 2.5px; }
+    #canvas g.rtl-dragging { opacity: 0.85; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
     #canvas.panning { cursor: grabbing; user-select: none; }
     #canvas:focus-visible { outline: 1px solid var(--vscode-focusBorder, #58a6ff); outline-offset: -2px; }
     #view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 14px; font-size: 12px; }
@@ -144,16 +148,20 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportSc
     <span id="zoom-level" aria-live="polite">100%</span>
     <button id="zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
     <button id="zoom-reset" title="Actual size (0)">1:1</button>
-    <span id="viewport-hint">Wheel / pinch: zoom · Drag: pan · F: fit · 0: actual size</span>
+    <button id="reset-blocks">Reset blocks</button>
+    <label><input type="checkbox" id="toggle-block-drag" checked> Enable block dragging</label>
+    <span id="viewport-hint">Wheel / pinch: zoom · ${projectViewer ? 'Drag block' : 'Drag input/output/constant'}: move · Drag canvas: pan · F: fit · 0: actual size</span>
   </div>
   <div id="canvas">
     <p>Start typing a SystemVerilog module to generate gates and flip-flops...</p>
   </div>
   ${viewportScriptUri ? `<script src="${viewportScriptUri.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"></script>` : ''}
+  ${dragBlocksScriptUri ? `<script src="${dragBlocksScriptUri.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"></script>` : ''}
   <script>
     const vscode = acquireVsCodeApi();
     const canvas = document.getElementById('canvas');
     const viewport = window.rtlCreateViewport?.(canvas, vscode);
+    const dragBlocks = window.rtlInitDragBlocks?.(canvas, ${!projectViewer});
     const badge = document.getElementById('status-badge');
     const themeSelect = document.getElementById('theme');
     const customPanel = document.getElementById('custom-colors');
@@ -214,6 +222,7 @@ export function getWebviewHtml(theme: ViewerTheme, palette?: Palette, viewportSc
         const first = !viewport?.hasContent;
         canvas.innerHTML = msg.svg;
         viewport?.setContent(canvas.querySelector('svg'), { fit: first && !vscode.getState()?.viewport, position: first ? undefined : position });
+        dragBlocks?.scanAndMark(canvas);
         colorGenericCells();
         badge.className = 'badge ok';
         badge.textContent = msg.warningCount > 0

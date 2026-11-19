@@ -190,6 +190,7 @@ function decorateModuleBridgeCrossings(routes) {
     const model = modules.get(mount.key);
     if (!model) return;
     const svg = scopedSvg(model.svg);
+    svg.dataset.instancePath = mount.path;
     mount.host.replaceChildren(svg);
     mount.svg = svg;
     // Only instance groups belonging to this module (nested modules are added later).
@@ -223,6 +224,7 @@ function decorateModuleBridgeCrossings(routes) {
     group.append(svgEl('text', { x: w / 2, y: by + 41, 'text-anchor': 'middle', class: 'project-module-name' }, model.name));
     const gutter = model.gutter || 120;
     const connections = [];
+    for (const port of model.ports) group.append(svgEl('g', { 's:x': port.direction === 'input' ? 0 : w, 's:y': port.y, 's:pid': port.name }));
     let nested;
     if (open) {
       const content = svgEl('g');

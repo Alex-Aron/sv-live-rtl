@@ -1,8 +1,8 @@
 import { getWebviewHtml, ViewerTheme } from './webview';
 import { Palette } from './palette';
 
-export function getProjectWebviewHtml(theme: ViewerTheme, palette: Palette, scriptUri: string, viewportScriptUri?: string): string {
-  return getWebviewHtml(theme, palette, viewportScriptUri)
+export function getProjectWebviewHtml(theme: ViewerTheme, palette: Palette, scriptUri: string, viewportScriptUri?: string, dragBlocksScriptUri?: string): string {
+  return getWebviewHtml(theme, palette, viewportScriptUri, dragBlocksScriptUri, true)
     .replace('<strong>Live RTL Schematic</strong>', '<strong>Project RTL</strong>')
     .replace('</style>', `
       #canvas { display: block; padding: 18px; }

@@ -59,7 +59,7 @@ class ProjectView implements vscode.Disposable {
     }, undefined, this.subscriptions);
     this.panel.onDidDispose(() => { this.dispose(); onDispose(); }, undefined, this.subscriptions);
     const script = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'project-viewer.js'));
-    this.panel.webview.html = getProjectWebviewHtml(getViewerTheme(), getViewerPalette(), script.toString(), this.panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'viewport.js')).toString());
+    this.panel.webview.html = getProjectWebviewHtml(getViewerTheme(), getViewerPalette(), script.toString(), this.panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'viewport.js')).toString(), this.panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'drag-blocks.js')).toString());
   }
   updateTheme() {
     void this.panel.webview.postMessage({ type: 'theme', theme: getViewerTheme(), customColors: getViewerPalette() });

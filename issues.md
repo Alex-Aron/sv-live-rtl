@@ -124,3 +124,5 @@ or patch the global netlistsvg install as the project solution.
 - Auto/Dark/Light/Custom palette, shared zoom/pan, inline `/N/` physical wire
   gaps, purple high:low selector labels, stacked bus mux/flop symbols, and
   dedicated 4/8/16/32:1 binary muxes are implemented.
+
+- Live mode permits dragging inputs, outputs, and constants; project mode permits dragging blocks. Manual dragging adds orthogonal leads to the original routed wire endpoints; these leads do not avoid symbols or add crossing jumps. Expanded project boundary bridges do not yet follow moved inner I/O symbols. Offsets live only for the current viewer session and depend on stable block identities across synthesis updates.

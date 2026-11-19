@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.ViewColumn.Beside,
         { enableScripts: true, retainContextWhenHidden: true }
       );
-      panel.webview.html = getWebviewHtml(getViewerTheme(), getViewerPalette(), panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'viewport.js')).toString());
+      panel.webview.html = getWebviewHtml(getViewerTheme(), getViewerPalette(), panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'viewport.js')).toString(), panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'drag-blocks.js')).toString());
       panel.webview.onDidReceiveMessage(async (message) => {
         if (message.type === 'setTheme' && ['auto', 'dark', 'light', 'custom'].includes(message.theme)) {
           await vscode.workspace.getConfiguration('sv-live-rtl').update(

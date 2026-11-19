@@ -4,9 +4,9 @@ module riscv_imm_gen #(
     parameter int XLEN = DEFAULT_XLEN
 ) (
     /* verilator lint_off UNUSEDSIGNAL */
-    input  logic [31:0]     instr,
+    input  logic [    31:0] instr,
     /* verilator lint_on UNUSEDSIGNAL */
-    input  logic [2:0]      imm_sel,
+    input  logic [     2:0] imm_sel,
     output logic [XLEN-1:0] imm
 );
     // Extract raw immediate bit fields per RISC-V specification
@@ -33,10 +33,10 @@ module riscv_imm_gen #(
     // Parameterized sign-extension to variable XLEN
     always_comb begin
         case (imm_sel)
-            IMM_I:   imm = XLEN'(signed'(imm_i_raw));
-            IMM_S:   imm = XLEN'(signed'(imm_s_raw));
-            IMM_B:   imm = XLEN'(signed'(imm_b_raw));
-            IMM_U:   imm = (XLEN >= 32) ? XLEN'(signed'(imm_u_raw)) : XLEN'(imm_u_raw[XLEN-1:0]);
+            IMM_I:   imm = unsigned'(XLEN'(signed'(imm_i_raw)));
+            IMM_S:   imm = unsigned'(XLEN'(signed'(imm_s_raw)));
+            IMM_B:   imm = unsigned'(XLEN'(signed'(imm_b_raw)));
+            IMM_U:   imm = imm_u_raw[XLEN-1:0];
             IMM_J:   imm = XLEN'(signed'(imm_j_raw));
             default: imm = '0;
         endcase

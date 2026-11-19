@@ -216,6 +216,46 @@ describe('Feature B: inline bus labels' , () => {
     assert.equal(wireLines(result).length, 2);
     assert.ok(result.includes('net_9 width_1'));
   });
+
+  test('keeps short bus runs solid between pins and junctions', () => {
+    const shortRuns = [
+      [12, 20, 50, 20],
+      [50, 20, 90, 20],
+      [50, 20, 50, 75],
+      [50, 75, 90, 75],
+      [90, 75, 90, 90]
+    ];
+    const dots = [20, 75].map(y => `<circle cx="50" cy="${y}" r="2" class="${net}"/>`);
+    const svg = wrap([...shortRuns.map(points => line(...points)), line(50, 75, 50, 135), ...dots].join(''));
+    const result = postProcessSvgBuses(svg);
+    assert.deepEqual(labels(result), [[50, 105]]);
+    const lines = wireLines(result);
+    for (const [x1, y1, x2, y2] of shortRuns) {
+      assert.ok(lines.some(w => +w.x1 === x1 && +w.y1 === y1 && +w.x2 === x2 && +w.y2 === y2 && w.class === `${net} width_4 bus`));
+    }
+  });
+
+  test('short spans between visible crossing jumps get no labels on either wire axis', () => {
+    const horizontal = postProcessSvgBuses(wrap(
+      line(0, 50, 135, 50) + line(45, 0, 45, 100, 'net_6') + line(90, 0, 90, 100, 'net_7')));
+    const vertical = postProcessSvgBuses(wrap(
+      line(50, 0, 50, 135) + line(0, 45, 100, 45, 'net_6') + line(0, 90, 100, 90, 'net_7')));
+    for (const result of [horizontal, vertical]) {
+      assert.deepEqual(labels(result), []);
+      assert.equal((result.match(/ wire-jump"/g) || []).length, 2);
+      assert.doesNotMatch(result, /<circle/);
+    }
+    assert.ok(wireLines(vertical).some(w => +w.x1 === 50 && +w.y1 === 0 && +w.y2 === 135));
+  });
+
+  test('a crossing can move the label to a longer span without adding labels to the route', () => {
+    const result = postProcessSvgBuses(wrap(
+      line(0, 50, 225, 50) + line(90, 0, 90, 100, 'net_6') + line(135, 0, 135, 100, 'net_7')));
+    const placed = labels(result);
+    assert.equal(placed.length, 1);
+    assert.ok(placed[0][0] < 90 || placed[0][0] > 135);
+    assert.equal((result.match(/ wire-jump"/g) || []).length, 2);
+  });
 });
 
 describe('Feature B: End-to-End RtlPipeline with Custom Skin', () => {

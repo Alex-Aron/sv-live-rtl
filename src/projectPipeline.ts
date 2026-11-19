@@ -139,7 +139,11 @@ export class ProjectPipeline {
         await exec('yosys', ['-q', '-s', script], { maxBuffer: 8 * 1024 * 1024, cwd: path.join(dir, 'sources') });
       };
       const ilPath = path.join(dir, 'elaborated.il'), interfacesPath = path.join(dir, 'interfaces.json');
-      await runYosys(`read_verilog -sv ${includes.map(i => '-I ' + quote(i.slice(2))).join(' ')} ${units.map(quote).join(' ')}\nhierarchy -check -top ${top}\nwrite_rtlil ${quote(ilPath)}\nblackbox\nwrite_json ${quote(interfacesPath)}\n`, 'elaborate');
+      // Newer Yosys writes twine handles by default. Use plain identifiers so
+      // each module can be extracted and read back without the original pool.
+      const { stdout: rtlilHelp } = await exec('yosys', ['-Q', '-T', '-p', 'help write_rtlil']);
+      const writeRtlil = /^\s+-readable\s*$/m.test(rtlilHelp) ? 'write_rtlil -readable' : 'write_rtlil';
+      await runYosys(`read_verilog -sv ${includes.map(i => '-I ' + quote(i.slice(2))).join(' ')} ${units.map(quote).join(' ')}\nhierarchy -check -top ${top}\n${writeRtlil} ${quote(ilPath)}\nblackbox\nwrite_json ${quote(interfacesPath)}\n`, 'elaborate');
       const il = await fs.readFile(ilPath, 'utf8');
       const blocks = splitRtlil(il);
       const interfaces = JSON.parse(await fs.readFile(interfacesPath, 'utf8')).modules;

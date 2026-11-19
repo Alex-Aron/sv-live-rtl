@@ -95,6 +95,12 @@ or patch the global netlistsvg install as the project solution.
 
 ## Recently completed — do not reopen as missing features
 
+- The project viewer requests readable RTLIL on Yosys versions that support it.
+  This restores project generation when Yosys emits twine handles by default.
+- Bus routes shorter than 60 SVG units between terminals and junctions keep
+  their bus styling without an inline width label or a gap for it.
+  Visible crossing jumps also bound the eligible spans on both wires.
+  Each original route still gets at most one label.
 - Compact collapsed module boxes and layout of only the visible expanded
   hierarchy; ordinary source edits retain unchanged parent layouts.
 - Adjustable wire clearance: `sv-live-rtl.wireLaneSpacing` (default 16 SVG

@@ -1,7 +1,8 @@
 /** Presentation-only wire clearance and crossing marks for netlistsvg's orthogonal SVG. */
 interface Point { x: number; y: number }
 interface Box { left: number; right: number; top: number; bottom: number }
-interface Segment { a: Point; b: Point; attrs: Record<string, string>; net: string }
+export interface WireSegment { a: Point; b: Point; net: string }
+interface Segment extends WireSegment { attrs: Record<string, string> }
 interface TextLabel { box: Box; source: string; x: number; y: number; selector: boolean }
 const EPS = 0.01;
 const attrs = (s: string): Record<string, string> => Object.fromEntries([...s.matchAll(/([\w:-]+)\s*=\s*["']([^"']*)["']/g)].map(m => [m[1], m[2]]));
@@ -78,7 +79,8 @@ function clearText(s: Segment, texts: Box[], cells: Box[], original: Segment[]):
   return [s];
 }
 
-export function postProcessSvgWires(svg: string): string {
+export function postProcessSvgWires(svg: string,
+  placeLabels?: (svg: string, segments: WireSegment[], crossings: Point[]) => string): string {
   const { texts, cells, labels } = bounds(svg);
   const segments: Segment[] = [];
   const line = /<line\b([^>]*?)\/?\s*>/g;
@@ -107,6 +109,7 @@ export function postProcessSvgWires(svg: string): string {
   const vertical = segments.filter(s => !horizontal(s));
   const jumps: string[] = [];
   const jumpClearances: string[] = [];
+  const jumpCenters: Point[] = [];
   const renderLine = (s: Segment) => `<line ${serialize({ ...s.attrs, x1: String(s.a.x), y1: String(s.a.y), x2: String(s.b.x), y2: String(s.b.y) })}/>`;
   const dots = [...svg.matchAll(/<circle\b([^>]*)\/?\s*>/g)].map(m => attrs(m[1])).filter(a => netOf(a));
   const rendered = segments.map(s => {
@@ -125,6 +128,7 @@ export function postProcessSvgWires(svg: string): string {
     }
     const pieces: string[] = []; let from = min;
     for (const [i, { x, radius }] of accepted.entries()) {
+      jumpCenters.push({ x, y });
       pieces.push(renderLine({ ...s, a: { x: from, y }, b: { x: x - radius, y } }));
       const d = `M${x - radius},${y} A${radius},${radius} 0 0 1 ${x + radius},${y}`;
       const bus = s.attrs.class?.split(/\s+/).includes('bus');
@@ -167,5 +171,6 @@ export function postProcessSvgWires(svg: string): string {
     const copy = `<text ${serialize({ ...a, x: String(l.x), y: String(l.y), class: `${a.class || ''} wire-label-clearance` })}>${content}</text>`;
     return l.selector ? `<g class="rtl-selector">${copy}</g>` : copy;
   });
-  return svg.replace('</svg>', `<g class="wire-crossings">${jumpClearances.join('\n')}${jumps.join('\n')}</g><g class="wire-junctions">${junctions.join('\n')}</g><g class="wire-labels">${protectedLabels.join('\n')}</g></svg>`);
+  svg = svg.replace('</svg>', `<g class="wire-crossings">${jumpClearances.join('\n')}${jumps.join('\n')}</g><g class="wire-junctions">${junctions.join('\n')}</g><g class="wire-labels">${protectedLabels.join('\n')}</g></svg>`);
+  return placeLabels ? placeLabels(svg, segments, jumpCenters) : svg;
 }

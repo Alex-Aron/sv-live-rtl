@@ -1,4 +1,4 @@
-import { postProcessSvgWires } from './svgWires';
+import { postProcessSvgWires, WireSegment } from './svgWires';
 
 /**
  * Transforms Yosys netlist JSON:
@@ -268,22 +268,44 @@ function overlaps(a: Box, b: Box): boolean {
 
 // Space between each wire end and the inline /N/ label, in SVG units.
 const BUS_LABEL_HORIZONTAL_PADDING = 1;
+const MIN_BUS_LABEL_ROUTE_LENGTH = 60;
 
-function placeLabel(route: Wire[], allWires: Wire[], occupied: Box[]): Label | undefined {
+function placeLabel(route: Wire[], allWires: Wire[], occupied: Box[], crossings: Point[]): Label | undefined {
   const total = route.reduce((n, w) => n + distance(w.a, w.b), 0);
+  if (total < MIN_BUS_LABEL_ROUTE_LENGTH) return;
   const textWidth = (`/${route[0].width}/`).length * 6.5;
   const candidates: { label: Label; score: number }[] = [];
+  // A jump limits both crossing wires visually. Measure spans along the route
+  // without adding graph edges or allowing additional labels on that route.
+  const stops = new Set([0, total]);
   let traveled = 0;
+  for (const w of route) {
+    for (const p of crossings) {
+      if (onWire(p, w)) stops.add(traveled + distance(w.a, p));
+    }
+    traveled += distance(w.a, w.b);
+  }
+  const boundaries = [...stops].sort((a, b) => a - b);
+  const spans = boundaries.slice(1).flatMap((end, i) => {
+    const start = boundaries[i];
+    if (end - start < MIN_BUS_LABEL_ROUTE_LENGTH) return [];
+    // Leave extra room at a jump for its painted shoulders.
+    return [{ start: start === 0 ? start : start + 2, end: end === total ? end : end - 2 }];
+  });
+  traveled = 0;
   for (const w of route) {
     const length = distance(w.a, w.b);
     const gap = w.horizontal ? textWidth + 2 * BUS_LABEL_HORIZONTAL_PADDING : 15;
     const margin = gap / 2 + 8;
-    if (length >= margin * 2) {
+    for (const span of spans) {
+      const min = Math.max(0, span.start - traveled) + margin;
+      const max = Math.min(length, span.end - traveled) - margin;
+      if (max < min) continue;
       // Start at the route midpoint; try nearby clear positions on that segment.
-      const ideal = Math.max(margin, Math.min(length - margin, total / 2 - traveled));
-      const positions = [ideal, length / 2];
-      for (let delta = 8; delta < length; delta += 8) positions.push(ideal - delta, ideal + delta);
-      for (const pos of positions.filter(p => p >= margin && p <= length - margin)) {
+      const ideal = Math.max(min, Math.min(max, total / 2 - traveled));
+      const positions = [ideal, (min + max) / 2];
+      for (let delta = 8; delta < max - min; delta += 8) positions.push(ideal - delta, ideal + delta);
+      for (const pos of positions.filter(p => p >= min && p <= max)) {
         const center = { x: w.a.x + (w.b.x - w.a.x) * pos / length, y: w.a.y + (w.b.y - w.a.y) * pos / length };
         const box = { left: center.x - textWidth / 2 - 3, right: center.x + textWidth / 2 + 3, top: center.y - 8, bottom: center.y + 8 };
         if (occupied.some(b => overlaps(box, b))) continue;
@@ -326,12 +348,28 @@ function formatSelectorRanges(svg: string): string {
 
 /** Cut real gaps for inline /N/ labels. No diagonal ticks or background masks.
  * Labels sit near the routed connection midpoint and avoid symbols, their text,
- * other wires, branch junctions, and previously placed labels. If a route has no
- * safe room, retain its thick bus wire without forcing an overlapping label.
+ * other wires, branch junctions, crossing jumps, and previously placed labels.
  */
 export function postProcessSvgBuses(svg: string): string {
-  svg = formatSelectorRanges(svg);
-  const allWires = [...svg.matchAll(LINE)].map(m => wireFrom(attributes(m[1]))).filter((w): w is Wire => !!w);
+  const style = `
+  .rtl-schematic line.bus { stroke-width: 2.5px; stroke: var(--rtl-bus, var(--rtl-wire, #d4d4d4)); }
+  .rtl-schematic circle.bus { fill: var(--rtl-bus, var(--rtl-wire, #d4d4d4)) !important; }
+  .rtl-schematic .bus-label { font-size: 10px; text-anchor: middle; dominant-baseline: central;
+    fill: var(--rtl-bus, var(--rtl-text, #d4d4d4)); stroke: none; user-select: none; }
+`;
+  svg = formatSelectorRanges(svg).replace(/<(?:line|circle)\b[^>]*>/g, element => {
+    const attrs = attributes(element), info = netInfo(attrs);
+    if (!info) return element;
+    return element.replace(/class="[^"]*"/, `class="${attrs.class} width_${info.width}${info.width > 1 ? ' bus' : ''}"`);
+  });
+  svg = svg.includes('</style>') ? svg.replace('</style>', `${style}</style>`) : svg.replace(/(<svg\b[^>]*>)/, `$1<style>${style}</style>`);
+  return postProcessSvgWires(svg, addBusLabels);
+}
+
+function addBusLabels(svg: string, segments: WireSegment[], crossings: Point[]): string {
+  const allWires = segments.filter(s => distance(s.a, s.b) >= EPS).map(s => ({
+    ...s, width: s.net.slice(4).split(',').length, horizontal: near(s.a.y, s.b.y)
+  }));
   const occupied = obstacles(svg);
   // Junction dots must remain visible, including dots on shared collinear runs.
   for (const m of svg.matchAll(/<circle\b([^>]*)\/?\s*>/g)) {
@@ -342,17 +380,14 @@ export function postProcessSvgBuses(svg: string): string {
   for (const w of allWires) if (w.width > 1) groups.set(w.net, [...(groups.get(w.net) || []), w]);
   const labels: Label[] = [];
   for (const group of groups.values()) for (const route of routes(group)) {
-    const label = placeLabel(route, allWires, occupied);
+    const label = placeLabel(route, allWires, occupied, crossings);
     if (label) { labels.push(label); occupied.push(label.box); }
   }
 
   let updated = svg.replace(LINE, (full, source: string) => {
-    const attrs = attributes(source), info = netInfo(attrs);
-    if (!info) return full;
-    const classes = `${attrs.class} width_${info.width}${info.width > 1 ? ' bus' : ''}`;
-    const decorated = full.replace(/class="[^"]*"/, `class="${classes}"`);
+    const attrs = attributes(source);
     const w = wireFrom(attrs);
-    if (!w) return decorated;
+    if (!w || w.width === 1) return full;
     const coord = (p: Point) => w.horizontal ? p.x : p.y;
     let intervals = [[Math.min(coord(w.a), coord(w.b)), Math.max(coord(w.a), coord(w.b))]];
     for (const l of labels) {
@@ -364,25 +399,14 @@ export function postProcessSvgBuses(svg: string): string {
         return [...(a < low ? [[a, low]] : []), ...(b > high ? [[high, b]] : [])];
       });
     }
-    if (intervals.length === 1 && near(intervals[0][1] - intervals[0][0], distance(w.a, w.b))) return decorated;
+    if (intervals.length === 1 && near(intervals[0][1] - intervals[0][0], distance(w.a, w.b))) return full;
     return intervals.map(([a, b]) => {
-      const lineAttrs = { ...attrs, class: classes,
+      const lineAttrs = { ...attrs,
         x1: w.horizontal ? a : w.a.x, y1: w.horizontal ? w.a.y : a,
         x2: w.horizontal ? b : w.a.x, y2: w.horizontal ? w.a.y : b };
       return `<line ${Object.entries(lineAttrs).map(([k, v]) => `${k}="${v}"`).join(' ')}/>`;
     }).join('\n');
   });
-  updated = updated.replace(/<circle\b([^>]*)\/?\s*>/g, (full, source: string) => {
-    const attrs = attributes(source), info = netInfo(attrs);
-    return info ? full.replace(/class="[^"]*"/, `class="${attrs.class} width_${info.width}${info.width > 1 ? ' bus' : ''}"`) : full;
-  });
-  const style = `
-  .rtl-schematic line.bus { stroke-width: 2.5px; stroke: var(--rtl-bus, var(--rtl-wire, #d4d4d4)); }
-  .rtl-schematic circle.bus { fill: var(--rtl-bus, var(--rtl-wire, #d4d4d4)) !important; }
-  .rtl-schematic .bus-label { font-size: 10px; text-anchor: middle; dominant-baseline: central;
-    fill: var(--rtl-bus, var(--rtl-text, #d4d4d4)); stroke: none; user-select: none; }
-`;
-  updated = updated.includes('</style>') ? updated.replace('</style>', `${style}</style>`) : updated.replace(/(<svg\b[^>]*>)/, `$1<style>${style}</style>`);
   if (labels.length) updated = updated.replace('</svg>', `<g class="bus-indicators">${labels.map(l =>
     `<text x="${l.center.x}" y="${l.center.y}" class="bus-label width_${l.wire.width}">/${l.wire.width}/</text>`
   ).join('\n')}</g></svg>`);
@@ -400,5 +424,5 @@ export function postProcessSvgBuses(svg: string): string {
       .replace(/\bheight="[^"]*"/, `height="${height}"`)
       .replace('>', ` viewBox="${left} ${top} ${width} ${height}">`);
   });
-  return postProcessSvgWires(updated);
+  return updated;
 }
